@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏴‍☠️ Pirata Pizzaria
 
-## Getting Started
+Site institucional e sistema administrativo para a Pirata Pizzaria.
 
-First, run the development server:
+## 🚀 Tecnologias
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Frontend**: Next.js 14 + React + TypeScript
+- **Estilização**: Tailwind CSS + shadcn/ui
+- **Backend**: Next.js API Routes
+- **Banco de Dados**: MySQL + Prisma ORM
+- **Autenticação**: NextAuth.js
+
+## 📁 Estrutura do Projeto
+
+```
+├── prisma/              # Schema e seeds do banco de dados
+├── public/              # Arquivos estáticos (logo, imagens)
+└── src/
+    ├── app/
+    │   ├── (public)/    # Páginas públicas (site institucional)
+    │   ├── (auth)/      # Páginas de autenticação
+    │   ├── (admin)/     # Painel administrativo
+    │   └── api/         # Rotas da API
+    ├── components/      # Componentes React
+    └── lib/             # Utilitários e configurações
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Instalação Local
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Clone o repositório**
+```bash
+git clone <url-do-repositorio>
+cd pirata
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Instale as dependências**
+```bash
+npm install
+```
 
-## Learn More
+3. **Configure as variáveis de ambiente**
+```bash
+cp .env.example .env
+# Edite o arquivo .env com suas configurações
+```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Configure o banco de dados**
+```bash
+npm run db:push    # Cria as tabelas
+npm run db:seed    # Popula com dados iniciais
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. **Inicie o servidor de desenvolvimento**
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+6. **Acesse o sistema**
+- Site público: http://localhost:3000
+- Login admin: http://localhost:3000/login
+  - Email: admin@piratapizzaria.com.br
+  - Senha: admin123
 
-## Deploy on Vercel
+## 🌐 Deploy na Hostinger
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 1. Configurar o Banco de Dados MySQL
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Acesse o painel hPanel da Hostinger
+2. Vá em **Bancos de Dados** > **MySQL**
+3. Crie um novo banco de dados
+4. Anote: nome do banco, usuário, senha e host
+
+### 2. Configurar Variáveis de Ambiente
+
+No hPanel, configure as variáveis de ambiente:
+
+```env
+DATABASE_URL=mysql://usuario:senha@host:3306/banco
+NEXTAUTH_SECRET=sua-chave-secreta (gere com: openssl rand -base64 32)
+NEXTAUTH_URL=https://piratapizzaria.com.br
+```
+
+### 3. Deploy via Git
+
+1. No hPanel, vá em **Git**
+2. Conecte seu repositório GitHub/GitLab
+3. Configure o branch e deploy automático
+
+### 4. Configurar Build
+
+No painel de deploy:
+- **Build command**: `npm run build`
+- **Start command**: `npm start`
+- **Node version**: 18 ou superior
+
+### 5. Executar Migrações
+
+Após o primeiro deploy, execute no terminal SSH:
+```bash
+npx prisma db push
+npx tsx prisma/seed.ts
+```
+
+## 📱 Funcionalidades
+
+### Site Público
+- ✅ Página inicial com apresentação
+- ✅ Cardápio completo (pizzas, almoço, bebidas, sobremesas)
+- ✅ Página sobre/horários de funcionamento
+- ✅ Página de contato com integração WhatsApp
+
+### Painel Administrativo
+- ✅ Dashboard com resumo financeiro
+- ✅ Cadastro de funcionários
+- ✅ Controle de adiantamentos
+- ✅ Folha de pagamento mensal
+- ✅ Registro de despesas
+- ✅ Registro de receitas/faturamento
+- ✅ Relatórios financeiros
+
+## 🔒 Segurança
+
+- Autenticação segura com NextAuth.js
+- Senhas criptografadas com bcrypt
+- APIs protegidas por sessão
+- Painel admin não acessível ao público
+
+## 📞 Suporte
+
+Para dúvidas ou suporte, entre em contato com o desenvolvedor.
+
+---
+
+Desenvolvido com ❤️ para a Pirata Pizzaria

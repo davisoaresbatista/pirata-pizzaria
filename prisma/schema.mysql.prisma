@@ -1,0 +1,103 @@
+// Schema para PRODUÇÃO - MySQL (Hostinger)
+// Copie este conteúdo para schema.prisma antes do deploy
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          String    @default("ADMIN") @db.VarChar(20)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Employee {
+  id            String    @id @default(cuid())
+  name          String    @db.VarChar(255)
+  role          String    @db.VarChar(100)
+  salary        Decimal   @db.Decimal(10, 2)
+  phone         String?   @db.VarChar(20)
+  document      String?   @db.VarChar(20)
+  hireDate      DateTime  @default(now())
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  advances      Advance[]
+  payrollEntries PayrollEntry[]
+
+  @@map("employees")
+}
+
+model Advance {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  amount        Decimal   @db.Decimal(10, 2)
+  requestDate   DateTime  @default(now())
+  paymentDate   DateTime?
+  status        String    @default("PENDING") @db.VarChar(20)
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("advances")
+}
+
+model PayrollEntry {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month         String    @db.VarChar(7)
+  baseSalary    Decimal   @db.Decimal(10, 2)
+  advances      Decimal   @db.Decimal(10, 2) @default(0)
+  bonuses       Decimal   @db.Decimal(10, 2) @default(0)
+  deductions    Decimal   @db.Decimal(10, 2) @default(0)
+  netSalary     Decimal   @db.Decimal(10, 2)
+  paymentDate   DateTime?
+  paid          Boolean   @default(false)
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([employeeId, month])
+  @@map("payroll_entries")
+}
+
+model Expense {
+  id            String    @id @default(cuid())
+  category      String    @db.VarChar(50)
+  description   String    @db.VarChar(255)
+  amount        Decimal   @db.Decimal(10, 2)
+  date          DateTime
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("expenses")
+}
+
+model Revenue {
+  id            String    @id @default(cuid())
+  source        String    @db.VarChar(50)
+  description   String?   @db.VarChar(255)
+  amount        Decimal   @db.Decimal(10, 2)
+  date          DateTime
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("revenues")
+}
+
