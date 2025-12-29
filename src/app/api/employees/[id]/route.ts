@@ -55,19 +55,34 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, role, salary, phone, document, hireDate, active } = body;
+    const { 
+      name, role, phone, document, hireDate, active,
+      worksLunch, lunchPaymentType, lunchValue, lunchStartTime, lunchEndTime,
+      worksDinner, dinnerPaymentType, dinnerWeekdayValue, dinnerWeekendValue, dinnerStartTime, dinnerEndTime
+    } = body;
+
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (role !== undefined) updateData.role = role;
+    if (phone !== undefined) updateData.phone = phone;
+    if (document !== undefined) updateData.document = document;
+    if (hireDate !== undefined) updateData.hireDate = new Date(hireDate);
+    if (active !== undefined) updateData.active = active;
+    if (worksLunch !== undefined) updateData.worksLunch = worksLunch;
+    if (lunchPaymentType !== undefined) updateData.lunchPaymentType = lunchPaymentType;
+    if (lunchValue !== undefined) updateData.lunchValue = parseFloat(lunchValue) || 0;
+    if (lunchStartTime !== undefined) updateData.lunchStartTime = lunchStartTime;
+    if (lunchEndTime !== undefined) updateData.lunchEndTime = lunchEndTime;
+    if (worksDinner !== undefined) updateData.worksDinner = worksDinner;
+    if (dinnerPaymentType !== undefined) updateData.dinnerPaymentType = dinnerPaymentType;
+    if (dinnerWeekdayValue !== undefined) updateData.dinnerWeekdayValue = parseFloat(dinnerWeekdayValue) || 0;
+    if (dinnerWeekendValue !== undefined) updateData.dinnerWeekendValue = parseFloat(dinnerWeekendValue) || 0;
+    if (dinnerStartTime !== undefined) updateData.dinnerStartTime = dinnerStartTime;
+    if (dinnerEndTime !== undefined) updateData.dinnerEndTime = dinnerEndTime;
 
     const employee = await prisma.employee.update({
       where: { id },
-      data: {
-        name,
-        role,
-        salary: salary ? parseFloat(salary) : undefined,
-        phone,
-        document,
-        hireDate: hireDate ? new Date(hireDate) : undefined,
-        active,
-      },
+      data: updateData,
     });
 
     return NextResponse.json(employee);

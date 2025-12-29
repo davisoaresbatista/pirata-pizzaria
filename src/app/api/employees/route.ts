@@ -37,11 +37,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, role, salary, phone, document, hireDate } = body;
+    const { 
+      name, role, phone, document, hireDate,
+      worksLunch, lunchPaymentType, lunchValue, lunchStartTime, lunchEndTime,
+      worksDinner, dinnerPaymentType, dinnerWeekdayValue, dinnerWeekendValue, dinnerStartTime, dinnerEndTime
+    } = body;
 
-    if (!name || !role || !salary) {
+    if (!name) {
       return NextResponse.json(
-        { error: "Nome, cargo e salário são obrigatórios" },
+        { error: "Nome é obrigatório" },
         { status: 400 }
       );
     }
@@ -49,11 +53,21 @@ export async function POST(request: Request) {
     const employee = await prisma.employee.create({
       data: {
         name,
-        role,
-        salary: parseFloat(salary),
+        role: role || "Funcionário",
         phone: phone || null,
         document: document || null,
         hireDate: hireDate ? new Date(hireDate) : new Date(),
+        worksLunch: worksLunch || false,
+        lunchPaymentType: lunchPaymentType || "SHIFT",
+        lunchValue: parseFloat(lunchValue) || 0,
+        lunchStartTime: lunchStartTime || null,
+        lunchEndTime: lunchEndTime || null,
+        worksDinner: worksDinner !== false,
+        dinnerPaymentType: dinnerPaymentType || "SHIFT",
+        dinnerWeekdayValue: parseFloat(dinnerWeekdayValue) || 0,
+        dinnerWeekendValue: parseFloat(dinnerWeekendValue) || 0,
+        dinnerStartTime: dinnerStartTime || null,
+        dinnerEndTime: dinnerEndTime || null,
       },
     });
 

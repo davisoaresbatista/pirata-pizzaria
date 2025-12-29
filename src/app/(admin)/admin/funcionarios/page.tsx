@@ -15,6 +15,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -22,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Sun, Moon, Clock } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -33,9 +40,17 @@ interface Employee {
   document: string | null;
   hireDate: string;
   active: boolean;
-  _count?: {
-    advances: number;
-  };
+  worksLunch: boolean;
+  lunchPaymentType: string;
+  lunchValue: number;
+  lunchStartTime: string | null;
+  lunchEndTime: string | null;
+  worksDinner: boolean;
+  dinnerPaymentType: string;
+  dinnerWeekdayValue: number;
+  dinnerWeekendValue: number;
+  dinnerStartTime: string | null;
+  dinnerEndTime: string | null;
 }
 
 export default function FuncionariosPage() {
@@ -47,11 +62,39 @@ export default function FuncionariosPage() {
   const [formData, setFormData] = useState({
     name: "",
     role: "",
-    salary: "",
     phone: "",
     document: "",
-    hireDate: "",
+    // Almoço
+    worksLunch: false,
+    lunchPaymentType: "SHIFT", // HOUR, SHIFT, DAY
+    lunchValue: "50",
+    lunchStartTime: "11:00",
+    lunchEndTime: "15:00",
+    // Jantar
+    worksDinner: true,
+    dinnerPaymentType: "SHIFT", // HOUR, SHIFT, DAY
+    dinnerWeekdayValue: "60",
+    dinnerWeekendValue: "80",
+    dinnerStartTime: "18:00",
+    dinnerEndTime: "23:00",
   });
+
+  // Função para calcular horas entre dois horários (suporta meia-noite)
+  const calculateHoursDisplay = (startTime: string, endTime: string): number => {
+    if (!startTime || !endTime) return 0;
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
+    let endMinutes = endH * 60 + endM;
+    
+    // Se o horário de saída for menor/igual que entrada, cruzou meia-noite
+    // Ex: 17:00 → 00:00 ou 18:00 → 00:00
+    if (endMinutes <= startMinutes) {
+      endMinutes += 24 * 60; // Adiciona 24 horas
+    }
+    
+    return Math.round((endMinutes - startMinutes) / 60 * 10) / 10;
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -75,10 +118,19 @@ export default function FuncionariosPage() {
     setFormData({
       name: "",
       role: "",
-      salary: "",
       phone: "",
       document: "",
-      hireDate: "",
+      worksLunch: false,
+      lunchPaymentType: "SHIFT",
+      lunchValue: "50",
+      lunchStartTime: "11:00",
+      lunchEndTime: "15:00",
+      worksDinner: true,
+      dinnerPaymentType: "SHIFT",
+      dinnerWeekdayValue: "60",
+      dinnerWeekendValue: "80",
+      dinnerStartTime: "18:00",
+      dinnerEndTime: "23:00",
     });
     setEditingEmployee(null);
   };
@@ -89,10 +141,19 @@ export default function FuncionariosPage() {
       setFormData({
         name: employee.name,
         role: employee.role,
-        salary: String(employee.salary),
         phone: employee.phone || "",
         document: employee.document || "",
-        hireDate: employee.hireDate.split("T")[0],
+        worksLunch: employee.worksLunch || false,
+        lunchPaymentType: employee.lunchPaymentType || "SHIFT",
+        lunchValue: String(employee.lunchValue || "50"),
+        lunchStartTime: employee.lunchStartTime || "11:00",
+        lunchEndTime: employee.lunchEndTime || "15:00",
+        worksDinner: employee.worksDinner || false,
+        dinnerPaymentType: employee.dinnerPaymentType || "SHIFT",
+        dinnerWeekdayValue: String(employee.dinnerWeekdayValue || "60"),
+        dinnerWeekendValue: String(employee.dinnerWeekendValue || "80"),
+        dinnerStartTime: employee.dinnerStartTime || "18:00",
+        dinnerEndTime: employee.dinnerEndTime || "23:00",
       });
     } else {
       resetForm();
@@ -113,34 +174,26 @@ export default function FuncionariosPage() {
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          lunchValue: parseFloat(formData.lunchValue) || 0,
+          dinnerWeekdayValue: parseFloat(formData.dinnerWeekdayValue) || 0,
+          dinnerWeekendValue: parseFloat(formData.dinnerWeekendValue) || 0,
+        }),
       });
 
       if (response.ok) {
         fetchEmployees();
         setIsDialogOpen(false);
         resetForm();
+      } else {
+        const error = await response.json();
+        alert(error.error || "Erro ao salvar");
       }
     } catch (error) {
-      console.error("Erro ao salvar funcionário:", error);
+      console.error("Erro ao salvar:", error);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este funcionário?")) return;
-
-    try {
-      const response = await fetch(`/api/employees/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        fetchEmployees();
-      }
-    } catch (error) {
-      console.error("Erro ao excluir funcionário:", error);
     }
   };
 
@@ -156,123 +209,315 @@ export default function FuncionariosPage() {
         fetchEmployees();
       }
     } catch (error) {
-      console.error("Erro ao atualizar status:", error);
+      console.error("Erro ao atualizar:", error);
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este funcionário?")) return;
+
+    try {
+      const response = await fetch(`/api/employees/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        fetchEmployees();
+      }
+    } catch (error) {
+      console.error("Erro ao excluir:", error);
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Funcionários</h1>
           <p className="text-muted-foreground">
-            Gerencie os funcionários da pizzaria
+            Gerencie os funcionários e seus valores por turno
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
             <Button onClick={() => handleOpenDialog()}>
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Novo Funcionário
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingEmployee ? "Editar Funcionário" : "Novo Funcionário"}
               </DialogTitle>
               <DialogDescription>
-                Preencha os dados do funcionário
+                Preencha os dados e configure os valores por turno
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role">Cargo *</Label>
-                  <Input
-                    id="role"
-                    placeholder="Ex: Pizzaiolo"
-                    value={formData.role}
-                    onChange={(e) =>
-                      setFormData({ ...formData, role: e.target.value })
-                    }
-                    required
-                  />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Dados básicos */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                  Dados Básicos
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nome *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Função</Label>
+                    <Input
+                      id="role"
+                      value={formData.role}
+                      onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                      placeholder="Ex: Garçom, Cozinheiro"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary">Salário *</Label>
-                  <Input
-                    id="salary"
-                    type="number"
-                    step="0.01"
-                    placeholder="0,00"
-                    value={formData.salary}
-                    onChange={(e) =>
-                      setFormData({ ...formData, salary: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    placeholder="(11) 99999-9999"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="document">CPF</Label>
-                  <Input
-                    id="document"
-                    placeholder="000.000.000-00"
-                    value={formData.document}
-                    onChange={(e) =>
-                      setFormData({ ...formData, document: e.target.value })
-                    }
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="(13) 99999-9999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="document">CPF</Label>
+                    <Input
+                      id="document"
+                      value={formData.document}
+                      onChange={(e) => setFormData({ ...formData, document: e.target.value })}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="hireDate">Data de Contratação</Label>
-                <Input
-                  id="hireDate"
-                  type="date"
-                  value={formData.hireDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, hireDate: e.target.value })
-                  }
-                />
+
+              {/* Turno Almoço */}
+              <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-5 w-5 text-amber-500" />
+                    <h3 className="font-semibold">Turno Almoço</h3>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.worksLunch}
+                      onChange={(e) => setFormData({ ...formData, worksLunch: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Trabalha neste turno</span>
+                  </label>
+                </div>
+                
+                {formData.worksLunch && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Tipo de Pagamento do Almoço</Label>
+                      <Select
+                        value={formData.lunchPaymentType}
+                        onValueChange={(value) => setFormData({ ...formData, lunchPaymentType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="HOUR">Por Hora</SelectItem>
+                          <SelectItem value="SHIFT">Por Turno</SelectItem>
+                          <SelectItem value="DAY">Por Dia</SelectItem>
+                          <SelectItem value="WEEK">Por Semana</SelectItem>
+                          <SelectItem value="MONTH">Por Mês (Fixo)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        💰 {formData.lunchPaymentType === "HOUR" ? "Taxa Horária (R$/hora)" : 
+                           formData.lunchPaymentType === "DAY" ? "Valor por Dia (R$)" : 
+                           formData.lunchPaymentType === "WEEK" ? "Valor por Semana (R$)" : 
+                           formData.lunchPaymentType === "MONTH" ? "Salário Mensal (R$)" :
+                           "Valor por Turno (R$)"}
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={formData.lunchValue}
+                        onChange={(e) => setFormData({ ...formData, lunchValue: e.target.value })}
+                        placeholder={formData.lunchPaymentType === "HOUR" ? "Ex: 15.00" : "Ex: 50.00"}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>⏰ Entrada</Label>
+                        <Input
+                          type="time"
+                          value={formData.lunchStartTime}
+                          onChange={(e) => setFormData({ ...formData, lunchStartTime: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>⏰ Saída</Label>
+                        <Input
+                          type="time"
+                          value={formData.lunchEndTime}
+                          onChange={(e) => setFormData({ ...formData, lunchEndTime: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    
+                    {formData.lunchPaymentType === "HOUR" && formData.lunchStartTime && formData.lunchEndTime && (
+                      <p className="text-xs text-muted-foreground bg-amber-100 dark:bg-amber-900/30 p-2 rounded">
+                        📊 {calculateHoursDisplay(formData.lunchStartTime, formData.lunchEndTime)}h × R$ {formData.lunchValue || "0"} = <strong>R$ {(calculateHoursDisplay(formData.lunchStartTime, formData.lunchEndTime) * parseFloat(formData.lunchValue || "0")).toFixed(2)}</strong>/dia
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
+
+              {/* Turno Jantar */}
+              <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-5 w-5 text-blue-500" />
+                    <h3 className="font-semibold">Turno Jantar</h3>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.worksDinner}
+                      onChange={(e) => setFormData({ ...formData, worksDinner: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Trabalha neste turno</span>
+                  </label>
+                </div>
+                
+                {formData.worksDinner && (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label>Tipo de Pagamento do Jantar</Label>
+                      <Select
+                        value={formData.dinnerPaymentType}
+                        onValueChange={(value) => setFormData({ ...formData, dinnerPaymentType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="HOUR">Por Hora</SelectItem>
+                          <SelectItem value="SHIFT">Por Turno</SelectItem>
+                          <SelectItem value="DAY">Por Dia</SelectItem>
+                          <SelectItem value="WEEK">Por Semana</SelectItem>
+                          <SelectItem value="MONTH">Por Mês (Fixo)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          💰 {formData.dinnerPaymentType === "HOUR" ? "Taxa/h" : 
+                             formData.dinnerPaymentType === "DAY" ? "Dia" : 
+                             formData.dinnerPaymentType === "WEEK" ? "Semana" : 
+                             formData.dinnerPaymentType === "MONTH" ? "Mês" :
+                             "Turno"} {formData.dinnerPaymentType === "MONTH" ? "" : "Seg-Sex"}
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.dinnerWeekdayValue}
+                          onChange={(e) => setFormData({ ...formData, dinnerWeekdayValue: e.target.value })}
+                          placeholder={formData.dinnerPaymentType === "HOUR" ? "Ex: 12.00" : "Ex: 60.00"}
+                        />
+                      </div>
+                      {formData.dinnerPaymentType !== "MONTH" && (
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          💰 {formData.dinnerPaymentType === "HOUR" ? "Taxa/h" : 
+                             formData.dinnerPaymentType === "DAY" ? "Dia" : 
+                             formData.dinnerPaymentType === "WEEK" ? "Semana" : 
+                             "Turno"} Sáb-Dom
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.dinnerWeekendValue}
+                          onChange={(e) => setFormData({ ...formData, dinnerWeekendValue: e.target.value })}
+                          placeholder={formData.dinnerPaymentType === "HOUR" ? "Ex: 18.00" : "Ex: 80.00"}
+                        />
+                      </div>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>⏰ Entrada</Label>
+                        <Input
+                          type="time"
+                          value={formData.dinnerStartTime}
+                          onChange={(e) => setFormData({ ...formData, dinnerStartTime: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>⏰ Saída</Label>
+                        <Input
+                          type="time"
+                          value={formData.dinnerEndTime}
+                          onChange={(e) => setFormData({ ...formData, dinnerEndTime: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    
+                    {formData.dinnerPaymentType === "HOUR" && formData.dinnerStartTime && formData.dinnerEndTime && (
+                      <div className="text-xs bg-blue-100 dark:bg-blue-900/30 p-2 rounded space-y-1">
+                        <p>
+                          📊 Seg-Sex: {calculateHoursDisplay(formData.dinnerStartTime, formData.dinnerEndTime)}h × R$ {formData.dinnerWeekdayValue || "0"} = <strong>R$ {(calculateHoursDisplay(formData.dinnerStartTime, formData.dinnerEndTime) * parseFloat(formData.dinnerWeekdayValue || "0")).toFixed(2)}</strong>
+                        </p>
+                        <p>
+                          📊 Sáb-Dom: {calculateHoursDisplay(formData.dinnerStartTime, formData.dinnerEndTime)}h × R$ {formData.dinnerWeekendValue || "0"} = <strong>R$ {(calculateHoursDisplay(formData.dinnerStartTime, formData.dinnerEndTime) * parseFloat(formData.dinnerWeekendValue || "0")).toFixed(2)}</strong>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  )}
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {editingEmployee ? "Salvar" : "Cadastrar"}
                 </Button>
               </div>
@@ -282,32 +527,35 @@ export default function FuncionariosPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                <Users className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{employees.length}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{employees.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Ativos</CardTitle>
+            <Users className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {employees.filter(e => e.active).length}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-                <Users className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  {employees.filter((e) => e.active).length}
-                </p>
-                <p className="text-xs text-muted-foreground">Ativos</p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Salário Fixo</CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {employees.filter(e => e.paymentType === 'FIXED').length}
             </div>
           </CardContent>
         </Card>
@@ -315,79 +563,132 @@ export default function FuncionariosPage() {
 
       {/* Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Lista de Funcionários</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : employees.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+        <CardContent className="pt-6">
+          {employees.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">
               Nenhum funcionário cadastrado
-            </div>
+            </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Cargo</TableHead>
-                    <TableHead>Salário</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {employees.map((employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell className="font-medium">
-                        {employee.name}
-                      </TableCell>
-                      <TableCell>{employee.role}</TableCell>
-                      <TableCell>
-                        R$ {Number(employee.salary).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </TableCell>
-                      <TableCell>{employee.phone || "-"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={employee.active ? "default" : "secondary"}
-                          className="cursor-pointer"
-                          onClick={() => handleToggleActive(employee)}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead className="text-center">Turnos</TableHead>
+                  <TableHead className="text-right">Valores</TableHead>
+                  <TableHead className="text-center">Horários</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {employees.map((employee) => (
+                  <TableRow key={employee.id} className={!employee.active ? "opacity-50" : ""}>
+                    <TableCell>
+                      <div>
+                        <span className="font-medium">{employee.name}</span>
+                        {employee.role && (
+                          <p className="text-xs text-muted-foreground">{employee.role}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-center gap-2">
+                        {employee.worksLunch && (
+                          <Sun className="h-4 w-4 text-amber-500" title="Almoço" />
+                        )}
+                        {employee.worksDinner && (
+                          <Moon className="h-4 w-4 text-blue-500" title="Jantar" />
+                        )}
+                        {!employee.worksLunch && !employee.worksDinner && (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-xs">
+                      <div className="space-y-1">
+                        {employee.worksLunch && (
+                          <div className="text-amber-600">
+                            <span className="font-medium">A:</span> {formatCurrency(Number(employee.lunchValue))}
+                            <span className="text-muted-foreground ml-1">
+                              ({employee.lunchPaymentType === "HOUR" ? "/h" : 
+                                employee.lunchPaymentType === "DAY" ? "/dia" : 
+                                employee.lunchPaymentType === "WEEK" ? "/sem" : 
+                                employee.lunchPaymentType === "MONTH" ? "/mês" :
+                                "/turno"})
+                            </span>
+                          </div>
+                        )}
+                        {employee.worksDinner && (
+                          <div className="text-blue-600">
+                            <span className="font-medium">J:</span> 
+                            {employee.dinnerPaymentType === "MONTH" 
+                              ? formatCurrency(Number(employee.dinnerWeekdayValue))
+                              : `${formatCurrency(Number(employee.dinnerWeekdayValue))}/${formatCurrency(Number(employee.dinnerWeekendValue))}`
+                            }
+                            <span className="text-muted-foreground ml-1">
+                              ({employee.dinnerPaymentType === "HOUR" ? "/h" : 
+                                employee.dinnerPaymentType === "DAY" ? "/dia" : 
+                                employee.dinnerPaymentType === "WEEK" ? "/sem" : 
+                                employee.dinnerPaymentType === "MONTH" ? "/mês" :
+                                "/turno"})
+                            </span>
+                          </div>
+                        )}
+                        {!employee.worksLunch && !employee.worksDinner && (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center text-xs">
+                      <div className="space-y-1">
+                        {employee.worksLunch && employee.lunchStartTime && (
+                          <div className="flex items-center justify-center gap-1 text-amber-600">
+                            <Clock className="h-3 w-3" />
+                            {employee.lunchStartTime}-{employee.lunchEndTime}
+                          </div>
+                        )}
+                        {employee.worksDinner && employee.dinnerStartTime && (
+                          <div className="flex items-center justify-center gap-1 text-blue-600">
+                            <Clock className="h-3 w-3" />
+                            {employee.dinnerStartTime}-{employee.dinnerEndTime}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={employee.active ? "default" : "secondary"}
+                        className="cursor-pointer"
+                        onClick={() => handleToggleActive(employee)}
+                      >
+                        {employee.active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenDialog(employee)}
                         >
-                          {employee.active ? "Ativo" : "Inativo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenDialog(employee)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            onClick={() => handleDelete(employee.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(employee.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-

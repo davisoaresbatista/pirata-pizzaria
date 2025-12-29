@@ -36,8 +36,25 @@ model Employee {
 
   advances      Advance[]
   payrollEntries PayrollEntry[]
+  timeEntries   TimeEntry[]
 
   @@map("employees")
+}
+
+model TimeEntry {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date          DateTime  @db.Date
+  clockIn       DateTime? @db.Time
+  clockOut      DateTime? @db.Time
+  status        String    @default("PRESENT") @db.VarChar(20)
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([employeeId, date])
+  @@map("time_entries")
 }
 
 model Advance {

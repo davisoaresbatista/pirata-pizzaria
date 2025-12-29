@@ -15,6 +15,10 @@ import {
   LogOut,
   Menu,
   X,
+  Clock,
+  Calculator,
+  Settings,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,19 +27,27 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { name: "Funcionários", href: "/admin/funcionarios", icon: Users },
-  { name: "Adiantamentos", href: "/admin/adiantamentos", icon: Wallet },
-  { name: "Folha de Pagamento", href: "/admin/folha", icon: FileText },
-  { name: "Despesas", href: "/admin/despesas", icon: Receipt },
-  { name: "Receitas", href: "/admin/receitas", icon: TrendingUp },
-  { name: "Relatórios", href: "/admin/relatorios", icon: BarChart3 },
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, adminOnly: true },
+  { name: "Funcionários", href: "/admin/funcionarios", icon: Users, adminOnly: true },
+  { name: "Controle de Ponto", href: "/admin/ponto", icon: Clock, adminOnly: false },
+  { name: "Fechamento", href: "/admin/fechamento", icon: Calculator, adminOnly: true },
+  { name: "Adiantamentos", href: "/admin/adiantamentos", icon: Wallet, adminOnly: true },
+  { name: "Despesas", href: "/admin/despesas", icon: Receipt, adminOnly: true },
+  { name: "Receitas", href: "/admin/receitas", icon: TrendingUp, adminOnly: true },
+  { name: "Usuários", href: "/admin/usuarios", icon: Shield, adminOnly: true },
+  { name: "Configurações", href: "/admin/configuracoes", icon: Settings, adminOnly: true },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  
+  const userRole = (session?.user?.role as string) || "MANAGER";
+  const isAdmin = userRole === "ADMIN";
+  
+  // Filtrar itens de navegação baseado no papel
+  const filteredNavigation = navigation.filter(item => !item.adminOnly || isAdmin);
 
   const SidebarContent = () => (
     <>
@@ -58,7 +70,7 @@ export function AdminSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -94,7 +106,7 @@ export function AdminSidebar() {
               {session?.user?.name || "Usuário"}
             </p>
             <p className="text-xs text-sidebar-foreground/60 truncate">
-              {session?.user?.email}
+              {isAdmin ? "Administrador" : "Gerente"}
             </p>
           </div>
         </div>

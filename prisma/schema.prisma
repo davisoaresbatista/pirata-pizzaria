@@ -1,13 +1,13 @@
-// Schema para PRODUÇÃO - MySQL (Hostinger)
-// Copie este conteúdo para schema.prisma antes do deploy
+// Schema para desenvolvimento local (SQLite)
+// Para produção MySQL, copie schema.mysql.prisma
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -15,7 +15,7 @@ model User {
   name          String
   email         String    @unique
   password      String
-  role          String    @default("ADMIN") @db.VarChar(20)
+  role          String    @default("ADMIN")  // ADMIN, MANAGER
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -24,31 +24,145 @@ model User {
 
 model Employee {
   id            String    @id @default(cuid())
-  name          String    @db.VarChar(255)
-  role          String    @db.VarChar(100)
-  salary        Decimal   @db.Decimal(10, 2)
-  phone         String?   @db.VarChar(20)
-  document      String?   @db.VarChar(20)
+  name          String
+  role          String
+  salary        Decimal   @default(0)  // Salário fixo (se aplicável)
+  phone         String?
+  document      String?
   hireDate      DateTime  @default(now())
   active        Boolean   @default(true)
+  
+  // Turno Almoço
+  worksLunch         Boolean   @default(false)
+  lunchPaymentType   String    @default("SHIFT")  // Tipo pagamento do almoço: HOUR, SHIFT, DAY
+  lunchValue         Decimal   @default(0)        // Valor (hora/turno/dia)
+  lunchStartTime     String?                      // Horário entrada
+  lunchEndTime       String?                      // Horário saída
+  
+  // Turno Jantar
+  worksDinner           Boolean   @default(false)
+  dinnerPaymentType     String    @default("SHIFT")  // Tipo pagamento do jantar: HOUR, SHIFT, DAY
+  dinnerWeekdayValue    Decimal   @default(0)        // Valor seg-sex
+  dinnerWeekendValue    Decimal   @default(0)        // Valor sáb-dom
+  dinnerStartTime       String?                      // Horário entrada
+  dinnerEndTime         String?                      // Horário saída
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  advances      Advance[]
+  advances       Advance[]
   payrollEntries PayrollEntry[]
+  timeEntries    TimeEntry[]
 
   @@map("employees")
+}
+
+model TimeEntry {
+  id            String    @id @default(cuid())
+  employeeId    String
+  employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date          DateTime
+  
+  // Turnos trabalhados
+  workedLunch   Boolean   @default(false)  // Trabalhou no almoço
+  workedDinner  Boolean   @default(false)  // Trabalhou no jantar
+  
+  // Horários de entrada/saída - Almoço
+  clockInLunch  String?   // Formato HH:MM
+  clockOutLunch String?   // Formato HH:MM
+  
+  // Horários de entrada/saída - Jantar
+  clockInDinner  String?  // Formato HH:MM
+  clockOutDinner String?  // Formato HH:MM
+  
+  status        String    @default("PRESENT") // PRESENT, ABSENT, LATE, HALF_DAY
+  notes         String?
+  
+  // Valores calculados
+  lunchValue    Decimal   @default(0)
+  dinnerValue   Decimal   @default(0)
+  totalValue    Decimal   @default(0)
+  
+  // Auditoria
+  createdById   String?   // ID do usuário que criou
+  updatedById   String?   // ID do usuário que atualizou
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([employeeId, date])
+  @@map("time_entries")
+}
+
+// Configuração de valores por turno
+model ShiftConfig {
+  id            String    @id @default(cuid())
+  name          String    @unique  // Ex: "lunch", "dinner_weekday", "dinner_weekend"
+  description   String
+  value         Decimal
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("shift_configs")
+}
+
+// Fechamento de período
+model PayrollPeriod {
+  id            String    @id @default(cuid())
+  startDate     DateTime
+  endDate       DateTime
+  periodType    String    // WEEKLY, BIWEEKLY, MONTHLY
+  status        String    @default("OPEN") // OPEN, CLOSED
+  totalAmount   Decimal   @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  payments      PayrollPayment[]
+
+  @@map("payroll_periods")
+}
+
+// Pagamentos do período
+model PayrollPayment {
+  id              String    @id @default(cuid())
+  periodId        String
+  period          PayrollPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employeeId      String
+  employeeName    String
+  
+  // Detalhamento
+  daysWorked      Int       @default(0)
+  lunchShifts     Int       @default(0)
+  dinnerShifts    Int       @default(0)
+  
+  // Valores
+  fixedSalary     Decimal   @default(0)
+  lunchTotal      Decimal   @default(0)
+  dinnerTotal     Decimal   @default(0)
+  grossAmount     Decimal   @default(0)
+  advances        Decimal   @default(0)
+  deductions      Decimal   @default(0)
+  netAmount       Decimal   @default(0)
+  
+  paid            Boolean   @default(false)
+  paidAt          DateTime?
+  notes           String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("payroll_payments")
 }
 
 model Advance {
   id            String    @id @default(cuid())
   employeeId    String
   employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  amount        Decimal   @db.Decimal(10, 2)
+  amount        Decimal
   requestDate   DateTime  @default(now())
   paymentDate   DateTime?
-  status        String    @default("PENDING") @db.VarChar(20)
-  notes         String?   @db.Text
+  status        String    @default("PENDING")
+  notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -59,15 +173,15 @@ model PayrollEntry {
   id            String    @id @default(cuid())
   employeeId    String
   employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  month         String    @db.VarChar(7)
-  baseSalary    Decimal   @db.Decimal(10, 2)
-  advances      Decimal   @db.Decimal(10, 2) @default(0)
-  bonuses       Decimal   @db.Decimal(10, 2) @default(0)
-  deductions    Decimal   @db.Decimal(10, 2) @default(0)
-  netSalary     Decimal   @db.Decimal(10, 2)
+  month         String
+  baseSalary    Decimal
+  advances      Decimal   @default(0)
+  bonuses       Decimal   @default(0)
+  deductions    Decimal   @default(0)
+  netSalary     Decimal
   paymentDate   DateTime?
   paid          Boolean   @default(false)
-  notes         String?   @db.Text
+  notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -77,11 +191,11 @@ model PayrollEntry {
 
 model Expense {
   id            String    @id @default(cuid())
-  category      String    @db.VarChar(50)
-  description   String    @db.VarChar(255)
-  amount        Decimal   @db.Decimal(10, 2)
+  category      String
+  description   String
+  amount        Decimal
   date          DateTime
-  notes         String?   @db.Text
+  notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -90,14 +204,13 @@ model Expense {
 
 model Revenue {
   id            String    @id @default(cuid())
-  source        String    @db.VarChar(50)
-  description   String?   @db.VarChar(255)
-  amount        Decimal   @db.Decimal(10, 2)
+  source        String
+  description   String?
+  amount        Decimal
   date          DateTime
-  notes         String?   @db.Text
+  notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@map("revenues")
 }
-
