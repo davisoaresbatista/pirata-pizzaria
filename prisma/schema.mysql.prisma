@@ -12,9 +12,9 @@ datasource db {
 
 model User {
   id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  password      String
+  name          String    @db.VarChar(255)
+  email         String    @unique @db.VarChar(255)
+  password      String    @db.VarChar(255)
   role          String    @default("ADMIN") @db.VarChar(20)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -26,17 +26,33 @@ model Employee {
   id            String    @id @default(cuid())
   name          String    @db.VarChar(255)
   role          String    @db.VarChar(100)
-  salary        Decimal   @db.Decimal(10, 2)
+  salary        Decimal   @default(0) @db.Decimal(10, 2)
   phone         String?   @db.VarChar(20)
   document      String?   @db.VarChar(20)
   hireDate      DateTime  @default(now())
   active        Boolean   @default(true)
+  
+  // Turno Almoço
+  worksLunch         Boolean   @default(false)
+  lunchPaymentType   String    @default("SHIFT") @db.VarChar(20)
+  lunchValue         Decimal   @default(0) @db.Decimal(10, 2)
+  lunchStartTime     String?   @db.VarChar(10)
+  lunchEndTime       String?   @db.VarChar(10)
+  
+  // Turno Jantar
+  worksDinner           Boolean   @default(false)
+  dinnerPaymentType     String    @default("SHIFT") @db.VarChar(20)
+  dinnerWeekdayValue    Decimal   @default(0) @db.Decimal(10, 2)
+  dinnerWeekendValue    Decimal   @default(0) @db.Decimal(10, 2)
+  dinnerStartTime       String?   @db.VarChar(10)
+  dinnerEndTime         String?   @db.VarChar(10)
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  advances      Advance[]
+  advances       Advance[]
   payrollEntries PayrollEntry[]
-  timeEntries   TimeEntry[]
+  timeEntries    TimeEntry[]
 
   @@map("employees")
 }
@@ -46,15 +62,96 @@ model TimeEntry {
   employeeId    String
   employee      Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   date          DateTime  @db.Date
-  clockIn       DateTime? @db.Time
-  clockOut      DateTime? @db.Time
+  
+  // Turnos trabalhados
+  workedLunch   Boolean   @default(false)
+  workedDinner  Boolean   @default(false)
+  
+  // Horários de entrada/saída - Almoço
+  clockInLunch  String?   @db.VarChar(10)
+  clockOutLunch String?   @db.VarChar(10)
+  
+  // Horários de entrada/saída - Jantar
+  clockInDinner  String?  @db.VarChar(10)
+  clockOutDinner String?  @db.VarChar(10)
+  
   status        String    @default("PRESENT") @db.VarChar(20)
   notes         String?   @db.Text
+  
+  // Valores calculados
+  lunchValue    Decimal   @default(0) @db.Decimal(10, 2)
+  dinnerValue   Decimal   @default(0) @db.Decimal(10, 2)
+  totalValue    Decimal   @default(0) @db.Decimal(10, 2)
+  
+  // Auditoria
+  createdById   String?   @db.VarChar(50)
+  updatedById   String?   @db.VarChar(50)
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   @@unique([employeeId, date])
   @@map("time_entries")
+}
+
+// Configuração de valores por turno
+model ShiftConfig {
+  id            String    @id @default(cuid())
+  name          String    @unique @db.VarChar(50)
+  description   String    @db.VarChar(255)
+  value         Decimal   @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("shift_configs")
+}
+
+// Fechamento de período
+model PayrollPeriod {
+  id            String    @id @default(cuid())
+  startDate     DateTime  @db.Date
+  endDate       DateTime  @db.Date
+  periodType    String    @db.VarChar(20)
+  status        String    @default("OPEN") @db.VarChar(20)
+  totalAmount   Decimal   @default(0) @db.Decimal(10, 2)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  payments      PayrollPayment[]
+
+  @@map("payroll_periods")
+}
+
+// Pagamentos do período
+model PayrollPayment {
+  id              String    @id @default(cuid())
+  periodId        String
+  period          PayrollPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employeeId      String    @db.VarChar(50)
+  employeeName    String    @db.VarChar(255)
+  
+  // Detalhamento
+  daysWorked      Int       @default(0)
+  lunchShifts     Int       @default(0)
+  dinnerShifts    Int       @default(0)
+  
+  // Valores
+  fixedSalary     Decimal   @default(0) @db.Decimal(10, 2)
+  lunchTotal      Decimal   @default(0) @db.Decimal(10, 2)
+  dinnerTotal     Decimal   @default(0) @db.Decimal(10, 2)
+  grossAmount     Decimal   @default(0) @db.Decimal(10, 2)
+  advances        Decimal   @default(0) @db.Decimal(10, 2)
+  deductions      Decimal   @default(0) @db.Decimal(10, 2)
+  netAmount       Decimal   @default(0) @db.Decimal(10, 2)
+  
+  paid            Boolean   @default(false)
+  paidAt          DateTime?
+  notes           String?   @db.Text
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("payroll_payments")
 }
 
 model Advance {
@@ -118,3 +215,40 @@ model Revenue {
   @@map("revenues")
 }
 
+// ============================================================================
+// SEGURANÇA E AUDITORIA
+// ============================================================================
+
+model AuditLog {
+  id            String    @id @default(cuid())
+  userId        String    @db.VarChar(50)
+  userEmail     String    @db.VarChar(255)
+  action        String    @db.VarChar(50)
+  resource      String    @db.VarChar(255)
+  resourceId    String?   @db.VarChar(50)
+  details       String?   @db.Text
+  ipAddress     String    @db.VarChar(45)
+  userAgent     String    @db.Text
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Tentativas de login (para proteção contra força bruta)
+model LoginAttempt {
+  id            String    @id @default(cuid())
+  email         String    @db.VarChar(255)
+  ipAddress     String    @db.VarChar(45)
+  success       Boolean
+  userAgent     String?   @db.Text
+  createdAt     DateTime  @default(now())
+
+  @@index([email])
+  @@index([ipAddress])
+  @@index([createdAt])
+  @@map("login_attempts")
+}

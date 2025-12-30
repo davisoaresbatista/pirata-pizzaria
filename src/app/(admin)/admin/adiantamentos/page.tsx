@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AdminOnly } from "@/components/admin/AdminOnly";
+import { getLocalDateString } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Check, X, Loader2, Wallet, Clock, DollarSign } from "lucide-react";
+import { Plus, Check, X, Loader2, Wallet, Clock, DollarSign, Users, TrendingUp, AlertCircle, CheckCircle2, XCircle, Ban, Calendar, CalendarDays, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -44,15 +46,16 @@ interface Advance {
   amount: number;
   requestDate: string;
   paymentDate: string | null;
-  status: "PENDING" | "APPROVED" | "PAID" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "PAID" | "REJECTED" | "DISCOUNTED";
   notes: string | null;
 }
 
-const statusConfig = {
-  PENDING: { label: "Pendente", variant: "outline" as const, color: "text-amber-600" },
-  APPROVED: { label: "Aprovado", variant: "secondary" as const, color: "text-blue-600" },
-  PAID: { label: "Pago", variant: "default" as const, color: "text-green-600" },
-  REJECTED: { label: "Rejeitado", variant: "destructive" as const, color: "text-red-600" },
+const statusConfig: Record<string, { label: string; variant: "outline" | "secondary" | "default" | "destructive"; color: string }> = {
+  PENDING: { label: "Pendente", variant: "outline", color: "text-amber-600" },
+  APPROVED: { label: "Aprovado", variant: "secondary", color: "text-blue-600" },
+  PAID: { label: "Pago", variant: "default", color: "text-green-600" },
+  DISCOUNTED: { label: "Descontado", variant: "outline", color: "text-purple-600" },
+  REJECTED: { label: "Rejeitado", variant: "destructive", color: "text-red-600" },
 };
 
 export default function AdiantamentosPage() {
@@ -65,7 +68,7 @@ export default function AdiantamentosPage() {
   const [formData, setFormData] = useState({
     employeeId: "",
     amount: "",
-    requestDate: new Date().toISOString().split("T")[0],
+    requestDate: getLocalDateString(),
     notes: "",
   });
 
@@ -110,7 +113,7 @@ export default function AdiantamentosPage() {
       if (response.ok) {
         fetchData();
         setIsDialogOpen(false);
-        setFormData({ employeeId: "", amount: "", requestDate: new Date().toISOString().split("T")[0], notes: "" });
+        setFormData({ employeeId: "", amount: "", requestDate: getLocalDateString(), notes: "" });
       }
     } catch (error) {
       console.error("Erro ao criar adiantamento:", error);
@@ -144,13 +147,103 @@ export default function AdiantamentosPage() {
     pendingAmount: advances
       .filter((a) => a.status === "PENDING")
       .reduce((sum, a) => sum + Number(a.amount), 0),
+    approved: advances.filter((a) => a.status === "APPROVED").length,
+    approvedAmount: advances
+      .filter((a) => a.status === "APPROVED")
+      .reduce((sum, a) => sum + Number(a.amount), 0),
     paid: advances.filter((a) => a.status === "PAID").length,
     paidAmount: advances
       .filter((a) => a.status === "PAID")
       .reduce((sum, a) => sum + Number(a.amount), 0),
+    discounted: advances.filter((a) => a.status === "DISCOUNTED").length,
+    discountedAmount: advances
+      .filter((a) => a.status === "DISCOUNTED")
+      .reduce((sum, a) => sum + Number(a.amount), 0),
+    rejected: advances.filter((a) => a.status === "REJECTED").length,
+    rejectedAmount: advances
+      .filter((a) => a.status === "REJECTED")
+      .reduce((sum, a) => sum + Number(a.amount), 0),
+    total: advances.length,
+    totalAmount: advances.reduce((sum, a) => sum + Number(a.amount), 0),
+  };
+
+  // Média por adiantamento
+  const avgAmount = stats.total > 0 ? stats.totalAmount / stats.total : 0;
+
+  // Top funcionários com mais adiantamentos (pendentes + aprovados)
+  const employeeAdvances = employees.map(emp => {
+    const empAdvances = advances.filter(a => a.employeeId === emp.id && (a.status === "PENDING" || a.status === "APPROVED"));
+    const total = empAdvances.reduce((sum, a) => sum + Number(a.amount), 0);
+    return {
+      ...emp,
+      count: empAdvances.length,
+      total,
+    };
+  }).filter(e => e.count > 0).sort((a, b) => b.total - a.total).slice(0, 5);
+
+  // Total em aberto (pendente + aprovado)
+  const totalOpen = stats.pendingAmount + stats.approvedAmount;
+
+  // Métricas de período
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const startOfLastWeek = new Date(startOfWeek);
+  startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+
+  // Adiantamentos desta semana
+  const thisWeekAdvances = advances.filter(a => {
+    const reqDate = new Date(a.requestDate);
+    return reqDate >= startOfWeek;
+  });
+  const thisWeekTotal = thisWeekAdvances.reduce((sum, a) => sum + Number(a.amount), 0);
+
+  // Adiantamentos da semana passada
+  const lastWeekAdvances = advances.filter(a => {
+    const reqDate = new Date(a.requestDate);
+    return reqDate >= startOfLastWeek && reqDate < startOfWeek;
+  });
+  const lastWeekTotal = lastWeekAdvances.reduce((sum, a) => sum + Number(a.amount), 0);
+
+  // Variação semanal
+  const weeklyChange = lastWeekTotal > 0 
+    ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 
+    : 0;
+
+  // Adiantamentos deste mês
+  const thisMonthAdvances = advances.filter(a => {
+    const reqDate = new Date(a.requestDate);
+    return reqDate >= startOfMonth;
+  });
+  const thisMonthTotal = thisMonthAdvances.reduce((sum, a) => sum + Number(a.amount), 0);
+
+  // Adiantamentos do mês passado (para comparação)
+  const lastMonthAdvances = advances.filter(a => {
+    const reqDate = new Date(a.requestDate);
+    return reqDate >= startOfLastMonth && reqDate <= endOfLastMonth;
+  });
+  const lastMonthTotal = lastMonthAdvances.reduce((sum, a) => sum + Number(a.amount), 0);
+
+  // Variação mensal
+  const monthlyChange = lastMonthTotal > 0 
+    ? ((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 
+    : 0;
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
   };
 
   return (
+    <AdminOnly>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -255,65 +348,231 @@ export default function AdiantamentosPage() {
         </Dialog>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
-                <Clock className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.pending}</p>
-                <p className="text-xs text-muted-foreground">Pendentes</p>
-              </div>
+      {/* Métricas */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total em Aberto */}
+        <Card className="bg-amber-50 border-amber-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-amber-700">Em Aberto</CardTitle>
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-700">{formatCurrency(totalOpen)}</div>
+            <div className="flex gap-2 text-xs text-amber-600 mt-1">
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {stats.pending} pendentes
+              </span>
+              <span className="flex items-center gap-1">
+                <Check className="h-3 w-3" />
+                {stats.approved} aprovados
+              </span>
             </div>
           </CardContent>
         </Card>
+
+        {/* Total Pago (aguardando desconto) */}
+        <Card className="bg-green-50 border-green-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-green-700">Pago (a descontar)</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-700">{formatCurrency(stats.paidAmount)}</div>
+            <p className="text-xs text-green-600 mt-1">
+              {stats.paid} aguardando fechamento
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Resumo Geral */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  R$ {stats.pendingAmount.toLocaleString("pt-BR")}
-                </p>
-                <p className="text-xs text-muted-foreground">Valor Pendente</p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Resumo</CardTitle>
+            <Wallet className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Média: {formatCurrency(avgAmount)}
             </div>
           </CardContent>
         </Card>
+
+        {/* Status */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-green-600" />
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Por Status</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-amber-600">
+                  <Clock className="h-3.5 w-3.5" />
+                  Pendentes
+                </span>
+                <span className="font-semibold">{stats.pending}</span>
               </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.paid}</p>
-                <p className="text-xs text-muted-foreground">Pagos (mês)</p>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-blue-600">
+                  <Check className="h-3.5 w-3.5" />
+                  Aprovados
+                </span>
+                <span className="font-semibold">{stats.approved}</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-500/10 rounded-xl flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-green-600" />
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-green-600">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  Pagos
+                </span>
+                <span className="font-semibold">{stats.paid}</span>
               </div>
-              <div>
-                <p className="text-2xl font-bold">
-                  R$ {stats.paidAmount.toLocaleString("pt-BR")}
-                </p>
-                <p className="text-xs text-muted-foreground">Total Pago</p>
-              </div>
+              {stats.discounted > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-purple-600">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Descontados
+                  </span>
+                  <span className="font-semibold">{stats.discounted}</span>
+                </div>
+              )}
+              {stats.rejected > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-red-600">
+                    <XCircle className="h-3.5 w-3.5" />
+                    Rejeitados
+                  </span>
+                  <span className="font-semibold">{stats.rejected}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Métricas de Período */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Esta Semana */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(thisWeekTotal)}</div>
+            <div className="flex items-center gap-1 text-xs mt-1">
+              <span className="text-muted-foreground">
+                {thisWeekAdvances.length} solicitações
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Semana Passada */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Semana Passada</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-muted-foreground">{formatCurrency(lastWeekTotal)}</div>
+            <div className="flex items-center gap-1 text-xs mt-1">
+              {weeklyChange !== 0 && lastWeekTotal > 0 && (
+                <>
+                  {weeklyChange > 0 ? (
+                    <ArrowUpRight className="h-3 w-3 text-red-500" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3 text-green-500" />
+                  )}
+                  <span className={weeklyChange > 0 ? "text-red-600" : "text-green-600"}>
+                    {Math.abs(weeklyChange).toFixed(0)}% variação
+                  </span>
+                </>
+              )}
+              {lastWeekTotal === 0 && (
+                <span className="text-muted-foreground">{lastWeekAdvances.length} solicitações</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Este Mês */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Este Mês</CardTitle>
+            <Calendar className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(thisMonthTotal)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {thisMonthAdvances.length} solicitações
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Comparação Mensal */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Mês Anterior</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{formatCurrency(lastMonthTotal)}</div>
+            <div className="flex items-center gap-1 text-xs mt-1">
+              {monthlyChange !== 0 && lastMonthTotal > 0 && (
+                <>
+                  {monthlyChange > 0 ? (
+                    <ArrowUpRight className="h-3 w-3 text-red-500" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3 text-green-500" />
+                  )}
+                  <span className={monthlyChange > 0 ? "text-red-600" : "text-green-600"}>
+                    {Math.abs(monthlyChange).toFixed(0)}% vs atual
+                  </span>
+                </>
+              )}
+              {lastMonthTotal === 0 && (
+                <span className="text-muted-foreground">{lastMonthAdvances.length} solicitações</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Funcionários com Adiantamentos em Aberto */}
+      {employeeAdvances.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Funcionários com Adiantamentos em Aberto
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {employeeAdvances.map((emp) => (
+                <div key={emp.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-medium text-sm">
+                      {emp.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium">{emp.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {emp.count} {emp.count === 1 ? 'adiantamento' : 'adiantamentos'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-amber-700">{formatCurrency(emp.total)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Table */}
       <Card>
@@ -328,6 +587,7 @@ export default function AdiantamentosPage() {
               <SelectItem value="PENDING">Pendentes</SelectItem>
               <SelectItem value="APPROVED">Aprovados</SelectItem>
               <SelectItem value="PAID">Pagos</SelectItem>
+              <SelectItem value="DISCOUNTED">Descontados</SelectItem>
               <SelectItem value="REJECTED">Rejeitados</SelectItem>
             </SelectContent>
           </Select>
@@ -343,15 +603,15 @@ export default function AdiantamentosPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Funcionário</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Data Solicitação</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Observações</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="w-[20%]">Funcionário</TableHead>
+                    <TableHead className="w-[12%] text-right">Valor</TableHead>
+                    <TableHead className="w-[15%]">Data Solicitação</TableHead>
+                    <TableHead className="w-[12%] text-center">Status</TableHead>
+                    <TableHead className="w-[26%]">Observações</TableHead>
+                    <TableHead className="w-[15%] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -419,6 +679,7 @@ export default function AdiantamentosPage() {
         </CardContent>
       </Card>
     </div>
+    </AdminOnly>
   );
 }
 

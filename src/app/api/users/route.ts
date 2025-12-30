@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/auth";
+import { 
+  withApiSecurity, 
+  successResponse, 
+  errorResponse,
+  logAuditAction,
+  type ApiContext 
+} from "@/lib/api-security";
+import { createUserSchema } from "@/lib/validation-schemas";
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session || session.user?.role !== "ADMIN") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-
-  try {
+// ============================================================================
+// GET /api/users - Lista todos os usuários
+// ============================================================================
+export const GET = withApiSecurity(
+  async (request: NextRequest, context: ApiContext) => {
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -23,56 +26,43 @@ export async function GET() {
       orderBy: { name: "asc" },
     });
 
-    return NextResponse.json(users);
-  } catch (error) {
-    console.error("Erro ao buscar usuários:", error);
-    return NextResponse.json({ error: "Erro ao buscar usuários" }, { status: 500 });
+    return successResponse(users);
+  },
+  {
+    requireAuth: true,
+    requiredRoles: ["ADMIN"], // Apenas admins podem listar usuários
   }
-}
+);
 
-export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  if (!session || session.user?.role !== "ADMIN") {
-    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-  }
-
-  try {
-    const body = await request.json();
-    const { name, email, password, role } = body;
-
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "Nome, email e senha são obrigatórios" },
-        { status: 400 }
-      );
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "A senha deve ter pelo menos 6 caracteres" },
-        { status: 400 }
-      );
-    }
+// ============================================================================
+// POST /api/users - Cria um novo usuário
+// ============================================================================
+export const POST = withApiSecurity(
+  async (request: NextRequest, context: ApiContext, data: unknown) => {
+    const { name, email, password, role } = data as {
+      name: string;
+      email: string;
+      password: string;
+      role: "ADMIN" | "MANAGER";
+    };
 
     // Verificar se email já existe
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.toLowerCase() },
     });
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "Este email já está em uso" },
-        { status: 400 }
-      );
+      return errorResponse("Este email já está em uso", 400);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash seguro da senha (bcrypt com cost factor 12)
+    const hashedPassword = await hashPassword(password);
 
+    // Criar usuário
     const user = await prisma.user.create({
       data: {
         name,
-        email,
+        email: email.toLowerCase(),
         password: hashedPassword,
         role: role || "MANAGER",
       },
@@ -85,10 +75,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(user, { status: 201 });
-  } catch (error) {
-    console.error("Erro ao criar usuário:", error);
-    return NextResponse.json({ error: "Erro ao criar usuário" }, { status: 500 });
-  }
-}
+    // Log de auditoria
+    await logAuditAction({
+      userId: context.session.user.id,
+      userEmail: context.session.user.email,
+      action: "CREATE_USER",
+      resource: "/api/users",
+      resourceId: user.id,
+      details: { 
+        newUserEmail: user.email, 
+        newUserRole: user.role 
+      },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
 
+    return successResponse(user, 201);
+  },
+  {
+    requireAuth: true,
+    requiredRoles: ["ADMIN"],
+    bodySchema: createUserSchema,
+    auditAction: "CREATE_USER",
+  }
+);

@@ -69,14 +69,11 @@ export async function POST(request: NextRequest) {
       where: { active: true },
     });
 
-    // Buscar adiantamentos pagos no período
+    // Buscar adiantamentos PAGOS (já entregues ao funcionário)
+    // Estes são os que devem ser descontados do salário
     const advances = await prisma.advance.findMany({
       where: {
         status: "PAID",
-        paymentDate: {
-          gte: start,
-          lte: end,
-        },
       },
     });
 
@@ -85,28 +82,29 @@ export async function POST(request: NextRequest) {
       acc[adv.employeeId] = (acc[adv.employeeId] || 0) + Number(adv.amount);
       return acc;
     }, {} as Record<string, number>);
+    
+    // IDs dos adiantamentos que serão marcados como pagos
+    const advanceIds = advances.map(a => a.id);
 
     // Calcular pagamentos por funcionário
     const payments = employees.map((emp) => {
-      const empEntries = timeEntries.filter((e) => e.employeeId === emp.id);
+      const empEntries = timeEntries.filter((e) => e.employeeId === emp.id && e.status === "PRESENT");
       const daysWorked = empEntries.length;
       const lunchShifts = empEntries.filter((e) => e.workedLunch).length;
       const dinnerShifts = empEntries.filter((e) => e.workedDinner).length;
       
-      const lunchTotal = empEntries.reduce((sum, e) => sum + Number(e.lunchValue), 0);
-      const dinnerTotal = empEntries.reduce((sum, e) => sum + Number(e.dinnerValue), 0);
+      // Somar valores já calculados nos registros de ponto
+      // Os valores já incluem o cálculo proporcional para mensalistas
+      const lunchTotal = empEntries.reduce((sum, e) => sum + Number(e.lunchValue || 0), 0);
+      const dinnerTotal = empEntries.reduce((sum, e) => sum + Number(e.dinnerValue || 0), 0);
       
-      // Para funcionário fixo, calcular proporcional ao período
-      let fixedSalary = 0;
-      if (emp.paymentType === "FIXED") {
-        const monthlyDays = 30;
-        const periodDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        fixedSalary = (Number(emp.salary) / monthlyDays) * daysWorked;
-      }
+      // O fixedSalary agora é apenas informativo para identificar mensalistas
+      // Não é somado ao grossAmount pois já está incluído no lunchTotal/dinnerTotal
+      const fixedSalary = 0;
 
-      const grossAmount = fixedSalary + lunchTotal + dinnerTotal;
+      const grossAmount = Math.round((lunchTotal + dinnerTotal) * 100) / 100;
       const advancesAmount = advancesByEmployee[emp.id] || 0;
-      const netAmount = grossAmount - advancesAmount;
+      const netAmount = Math.max(0, Math.round((grossAmount - advancesAmount) * 100) / 100);
 
       return {
         employeeId: emp.id,
@@ -115,8 +113,8 @@ export async function POST(request: NextRequest) {
         lunchShifts,
         dinnerShifts,
         fixedSalary,
-        lunchTotal,
-        dinnerTotal,
+        lunchTotal: Math.round(lunchTotal * 100) / 100,
+        dinnerTotal: Math.round(dinnerTotal * 100) / 100,
         grossAmount,
         advances: advancesAmount,
         deductions: 0,
@@ -125,7 +123,7 @@ export async function POST(request: NextRequest) {
     }).filter((p) => p.grossAmount > 0 || p.advances > 0);
 
     // Calcular total do período
-    const totalAmount = payments.reduce((sum, p) => sum + p.netAmount, 0);
+    const totalAmount = Math.round(payments.reduce((sum, p) => sum + p.netAmount, 0) * 100) / 100;
 
     // Criar período com pagamentos
     const period = await prisma.payrollPeriod.create({
@@ -142,6 +140,20 @@ export async function POST(request: NextRequest) {
         payments: true,
       },
     });
+
+    // Marcar adiantamentos como DESCONTADOS (já foram abatidos do salário)
+    if (advanceIds.length > 0) {
+      await prisma.advance.updateMany({
+        where: {
+          id: {
+            in: advanceIds,
+          },
+        },
+        data: {
+          status: "DISCOUNTED",
+        },
+      });
+    }
 
     return NextResponse.json(period, { status: 201 });
   } catch (error) {

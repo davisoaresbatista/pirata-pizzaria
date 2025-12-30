@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AdminOnly } from "@/components/admin/AdminOnly";
+import { getLocalDateString } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,7 +62,7 @@ export default function ReceitasPage() {
     source: "",
     description: "",
     amount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDateString(),
     notes: "",
   });
 
@@ -101,7 +103,7 @@ export default function ReceitasPage() {
           source: "",
           description: "",
           amount: "",
-          date: new Date().toISOString().split("T")[0],
+          date: getLocalDateString(),
           notes: "",
         });
       }
@@ -133,6 +135,7 @@ export default function ReceitasPage() {
     sources.find((s) => s.value === value)?.label || value;
 
   return (
+    <AdminOnly>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -290,20 +293,20 @@ export default function ReceitasPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Fonte</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="w-[15%]">Data</TableHead>
+                    <TableHead className="w-[20%]">Fonte</TableHead>
+                    <TableHead className="w-[35%]">Descrição</TableHead>
+                    <TableHead className="w-[18%] text-right">Valor</TableHead>
+                    <TableHead className="w-[12%] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {revenues.map((revenue) => (
                     <TableRow key={revenue.id}>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {new Date(revenue.date).toLocaleDateString("pt-BR")}
                       </TableCell>
                       <TableCell>
@@ -311,8 +314,8 @@ export default function ReceitasPage() {
                           {getSourceLabel(revenue.source)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{revenue.description || "-"}</TableCell>
-                      <TableCell className="font-semibold text-green-600">
+                      <TableCell className="truncate">{revenue.description || "-"}</TableCell>
+                      <TableCell className="font-semibold text-green-600 text-right whitespace-nowrap">
                         R$ {Number(revenue.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell className="text-right">
@@ -334,6 +337,7 @@ export default function ReceitasPage() {
         </CardContent>
       </Card>
     </div>
+    </AdminOnly>
   );
 }
 

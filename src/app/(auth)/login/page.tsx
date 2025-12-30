@@ -1,29 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { HoneypotField, isHoneypotFilled } from "@/components/security/HoneypotField";
+import { Loader2, ArrowLeft, AlertTriangle, Clock } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isLocked, setIsLocked] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    website: "", // Honeypot field
   });
+
+  // Verificar se foi redirecionado por timeout
+  useEffect(() => {
+    const reason = searchParams.get("reason");
+    if (reason === "timeout") {
+      setError("Sua sessão expirou por inatividade. Faça login novamente.");
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Verificar honeypot (bots preenchem este campo)
+    if (isHoneypotFilled(formData)) {
+      // Simular loading para bots
+      setIsLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setError("Erro ao processar requisição.");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError("");
+    setIsLocked(false);
 
     try {
       const result = await signIn("credentials", {
@@ -33,7 +57,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Email ou senha incorretos");
+        // Verificar se é erro de bloqueio
+        if (result.error.includes("bloqueada") || result.error.includes("locked")) {
+          setIsLocked(true);
+          setError(result.error);
+        } else {
+          setError("Email ou senha incorretos");
+        }
       } else {
         router.push("/admin/dashboard");
         router.refresh();
@@ -71,11 +101,24 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Mensagem de erro */}
               {error && (
-                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
-                  {error}
+                <div className={`p-3 text-sm rounded-lg flex items-start gap-2 ${
+                  isLocked 
+                    ? "text-amber-700 bg-amber-50 border border-amber-200" 
+                    : "text-destructive bg-destructive/10"
+                }`}>
+                  {isLocked ? (
+                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  )}
+                  <span>{error}</span>
                 </div>
               )}
+
+              {/* Honeypot - invisível para usuários reais */}
+              <HoneypotField name="website" />
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -89,6 +132,7 @@ export default function LoginPage() {
                   }
                   required
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
 
@@ -104,13 +148,23 @@ export default function LoginPage() {
                   }
                   required
                   disabled={isLoading}
+                  autoComplete="current-password"
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || isLocked}
+              >
                 {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Entrar
+                {isLocked ? "Conta Bloqueada" : "Entrar"}
               </Button>
+
+              {/* Dica de segurança */}
+              <p className="text-xs text-muted-foreground text-center">
+                Após 5 tentativas incorretas, sua conta será bloqueada por 15 minutos.
+              </p>
             </form>
           </CardContent>
         </Card>
@@ -128,4 +182,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

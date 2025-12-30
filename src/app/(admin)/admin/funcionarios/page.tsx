@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AdminOnly } from "@/components/admin/AdminOnly";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Users, Sun, Moon, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Sun, Moon, Clock, DollarSign, UserCheck, UserX } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -69,14 +70,14 @@ export default function FuncionariosPage() {
     lunchPaymentType: "SHIFT", // HOUR, SHIFT, DAY
     lunchValue: "50",
     lunchStartTime: "11:00",
-    lunchEndTime: "15:00",
+    lunchEndTime: "17:00",
     // Jantar
     worksDinner: true,
     dinnerPaymentType: "SHIFT", // HOUR, SHIFT, DAY
     dinnerWeekdayValue: "60",
     dinnerWeekendValue: "80",
-    dinnerStartTime: "18:00",
-    dinnerEndTime: "23:00",
+    dinnerStartTime: "17:00",
+    dinnerEndTime: "00:00",
   });
 
   // Função para calcular horas entre dois horários (suporta meia-noite)
@@ -124,13 +125,13 @@ export default function FuncionariosPage() {
       lunchPaymentType: "SHIFT",
       lunchValue: "50",
       lunchStartTime: "11:00",
-      lunchEndTime: "15:00",
+      lunchEndTime: "17:00",
       worksDinner: true,
       dinnerPaymentType: "SHIFT",
       dinnerWeekdayValue: "60",
       dinnerWeekendValue: "80",
-      dinnerStartTime: "18:00",
-      dinnerEndTime: "23:00",
+      dinnerStartTime: "17:00",
+      dinnerEndTime: "00:00",
     });
     setEditingEmployee(null);
   };
@@ -147,13 +148,13 @@ export default function FuncionariosPage() {
         lunchPaymentType: employee.lunchPaymentType || "SHIFT",
         lunchValue: String(employee.lunchValue || "50"),
         lunchStartTime: employee.lunchStartTime || "11:00",
-        lunchEndTime: employee.lunchEndTime || "15:00",
+        lunchEndTime: employee.lunchEndTime || "17:00",
         worksDinner: employee.worksDinner || false,
         dinnerPaymentType: employee.dinnerPaymentType || "SHIFT",
         dinnerWeekdayValue: String(employee.dinnerWeekdayValue || "60"),
         dinnerWeekendValue: String(employee.dinnerWeekendValue || "80"),
-        dinnerStartTime: employee.dinnerStartTime || "18:00",
-        dinnerEndTime: employee.dinnerEndTime || "23:00",
+        dinnerStartTime: employee.dinnerStartTime || "17:00",
+        dinnerEndTime: employee.dinnerEndTime || "00:00",
       });
     } else {
       resetForm();
@@ -236,6 +237,54 @@ export default function FuncionariosPage() {
     }).format(value);
   };
 
+  // Métricas
+  const activeEmployees = employees.filter(e => e.active);
+  const inactiveEmployees = employees.filter(e => !e.active);
+  
+  const lunchOnlyEmployees = activeEmployees.filter(e => e.worksLunch && !e.worksDinner);
+  const dinnerOnlyEmployees = activeEmployees.filter(e => !e.worksLunch && e.worksDinner);
+  const bothShiftsEmployees = activeEmployees.filter(e => e.worksLunch && e.worksDinner);
+  
+  // Cálculo de custo diário estimado (média semana/fim de semana)
+  const calculateDailyLunchCost = () => {
+    return activeEmployees
+      .filter(e => e.worksLunch)
+      .reduce((sum, e) => {
+        const value = Number(e.lunchValue) || 0;
+        // Para pagamento por hora, estima 6 horas de trabalho
+        if (e.lunchPaymentType === "HOUR") return sum + (value * 6);
+        // Para pagamento semanal, divide por 6 dias
+        if (e.lunchPaymentType === "WEEK") return sum + (value / 6);
+        // Para pagamento mensal, divide por 26 dias
+        if (e.lunchPaymentType === "MONTH") return sum + (value / 26);
+        return sum + value;
+      }, 0);
+  };
+  
+  const calculateDailyDinnerCost = (isWeekend: boolean) => {
+    return activeEmployees
+      .filter(e => e.worksDinner)
+      .reduce((sum, e) => {
+        const value = isWeekend 
+          ? (Number(e.dinnerWeekendValue) || 0)
+          : (Number(e.dinnerWeekdayValue) || 0);
+        // Para pagamento por hora, estima 7 horas de trabalho
+        if (e.dinnerPaymentType === "HOUR") return sum + (value * 7);
+        // Para pagamento semanal, divide por 6 dias
+        if (e.dinnerPaymentType === "WEEK") return sum + (value / 6);
+        // Para pagamento mensal, divide por 26 dias
+        if (e.dinnerPaymentType === "MONTH") return sum + (value / 26);
+        return sum + value;
+      }, 0);
+  };
+  
+  const dailyLunchCost = calculateDailyLunchCost();
+  const dailyDinnerWeekdayCost = calculateDailyDinnerCost(false);
+  const dailyDinnerWeekendCost = calculateDailyDinnerCost(true);
+  const avgDailyDinnerCost = (dailyDinnerWeekdayCost * 5 + dailyDinnerWeekendCost * 2) / 7;
+  const totalDailyCost = dailyLunchCost + avgDailyDinnerCost;
+  const estimatedMonthlyCost = totalDailyCost * 26;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -245,6 +294,7 @@ export default function FuncionariosPage() {
   }
 
   return (
+    <AdminOnly>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -526,8 +576,8 @@ export default function FuncionariosPage() {
         </Dialog>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Stats - Funcionários */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -535,27 +585,92 @@ export default function FuncionariosPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{employees.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Ativos</CardTitle>
-            <Users className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {employees.filter(e => e.active).length}
+            <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+              <span className="flex items-center gap-1">
+                <UserCheck className="h-3 w-3 text-green-500" />
+                {activeEmployees.length} ativos
+              </span>
+              <span className="flex items-center gap-1">
+                <UserX className="h-3 w-3 text-red-500" />
+                {inactiveEmployees.length} inativos
+              </span>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Salário Fixo</CardTitle>
-            <Users className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Por Turno</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {employees.filter(e => e.paymentType === 'FIXED').length}
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5 text-amber-600">
+                  <Sun className="h-3.5 w-3.5" />
+                  Só Almoço
+                </span>
+                <span className="font-semibold">{lunchOnlyEmployees.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5 text-blue-600">
+                  <Moon className="h-3.5 w-3.5" />
+                  Só Jantar
+                </span>
+                <span className="font-semibold">{dinnerOnlyEmployees.length}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-1.5 text-purple-600">
+                  <Users className="h-3.5 w-3.5" />
+                  Ambos
+                </span>
+                <span className="font-semibold">{bothShiftsEmployees.length}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Custo Diário</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalDailyCost)}</div>
+            <div className="space-y-0.5 text-xs text-muted-foreground mt-1">
+              <div className="flex justify-between">
+                <span className="flex items-center gap-1">
+                  <Sun className="h-3 w-3 text-amber-500" />
+                  Almoço
+                </span>
+                <span>{formatCurrency(dailyLunchCost)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="flex items-center gap-1">
+                  <Moon className="h-3 w-3 text-blue-500" />
+                  Jantar (média)
+                </span>
+                <span>{formatCurrency(avgDailyDinnerCost)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Custo Mensal Est.</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(estimatedMonthlyCost)}
+            </div>
+            <div className="space-y-0.5 text-xs text-muted-foreground mt-1">
+              <div className="flex justify-between">
+                <span>Dia útil (jantar)</span>
+                <span>{formatCurrency(dailyLunchCost + dailyDinnerWeekdayCost)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Fim de semana (jantar)</span>
+                <span>{formatCurrency(dailyLunchCost + dailyDinnerWeekendCost)}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -569,15 +684,15 @@ export default function FuncionariosPage() {
               Nenhum funcionário cadastrado
             </p>
           ) : (
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead className="text-center">Turnos</TableHead>
-                  <TableHead className="text-right">Valores</TableHead>
-                  <TableHead className="text-center">Horários</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="w-[25%]">Nome</TableHead>
+                  <TableHead className="w-[10%] text-center">Turnos</TableHead>
+                  <TableHead className="w-[25%] text-right">Valores</TableHead>
+                  <TableHead className="w-[18%] text-center">Horários</TableHead>
+                  <TableHead className="w-[10%]">Status</TableHead>
+                  <TableHead className="w-[12%] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -604,33 +719,36 @@ export default function FuncionariosPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right text-xs">
+                    <TableCell className="text-right text-xs whitespace-nowrap">
                       <div className="space-y-1">
                         {employee.worksLunch && (
-                          <div className="text-amber-600">
-                            <span className="font-medium">A:</span> {formatCurrency(Number(employee.lunchValue))}
-                            <span className="text-muted-foreground ml-1">
-                              ({employee.lunchPaymentType === "HOUR" ? "/h" : 
+                          <div className="flex items-center justify-end gap-1 text-amber-600">
+                            <Sun className="h-3 w-3 shrink-0" />
+                            <span className="font-medium">{formatCurrency(Number(employee.lunchValue))}</span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {employee.lunchPaymentType === "HOUR" ? "/h" : 
                                 employee.lunchPaymentType === "DAY" ? "/dia" : 
                                 employee.lunchPaymentType === "WEEK" ? "/sem" : 
                                 employee.lunchPaymentType === "MONTH" ? "/mês" :
-                                "/turno"})
+                                "/turno"}
                             </span>
                           </div>
                         )}
                         {employee.worksDinner && (
-                          <div className="text-blue-600">
-                            <span className="font-medium">J:</span> 
-                            {employee.dinnerPaymentType === "MONTH" 
-                              ? formatCurrency(Number(employee.dinnerWeekdayValue))
-                              : `${formatCurrency(Number(employee.dinnerWeekdayValue))}/${formatCurrency(Number(employee.dinnerWeekendValue))}`
-                            }
-                            <span className="text-muted-foreground ml-1">
-                              ({employee.dinnerPaymentType === "HOUR" ? "/h" : 
+                          <div className="flex items-center justify-end gap-1 text-blue-600">
+                            <Moon className="h-3 w-3 shrink-0" />
+                            <span className="font-medium">
+                              {employee.dinnerPaymentType === "MONTH" 
+                                ? formatCurrency(Number(employee.dinnerWeekdayValue))
+                                : `${formatCurrency(Number(employee.dinnerWeekdayValue))}/${formatCurrency(Number(employee.dinnerWeekendValue))}`
+                              }
+                            </span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {employee.dinnerPaymentType === "HOUR" ? "/h" : 
                                 employee.dinnerPaymentType === "DAY" ? "/dia" : 
                                 employee.dinnerPaymentType === "WEEK" ? "/sem" : 
                                 employee.dinnerPaymentType === "MONTH" ? "/mês" :
-                                "/turno"})
+                                "/turno"}
                             </span>
                           </div>
                         )}
@@ -639,18 +757,18 @@ export default function FuncionariosPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-center text-xs">
+                    <TableCell className="text-center text-xs whitespace-nowrap">
                       <div className="space-y-1">
                         {employee.worksLunch && employee.lunchStartTime && (
                           <div className="flex items-center justify-center gap-1 text-amber-600">
-                            <Clock className="h-3 w-3" />
-                            {employee.lunchStartTime}-{employee.lunchEndTime}
+                            <Sun className="h-3 w-3 shrink-0" />
+                            <span>{employee.lunchStartTime}-{employee.lunchEndTime}</span>
                           </div>
                         )}
                         {employee.worksDinner && employee.dinnerStartTime && (
                           <div className="flex items-center justify-center gap-1 text-blue-600">
-                            <Clock className="h-3 w-3" />
-                            {employee.dinnerStartTime}-{employee.dinnerEndTime}
+                            <Moon className="h-3 w-3 shrink-0" />
+                            <span>{employee.dinnerStartTime}-{employee.dinnerEndTime}</span>
                           </div>
                         )}
                       </div>
@@ -690,5 +808,6 @@ export default function FuncionariosPage() {
         </CardContent>
       </Card>
     </div>
+    </AdminOnly>
   );
 }

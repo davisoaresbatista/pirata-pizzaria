@@ -214,3 +214,41 @@ model Revenue {
 
   @@map("revenues")
 }
+
+// ============================================================================
+// SEGURANÇA E AUDITORIA
+// ============================================================================
+
+model AuditLog {
+  id            String    @id @default(cuid())
+  userId        String                          // ID do usuário que executou a ação
+  userEmail     String                          // Email para referência rápida
+  action        String                          // CREATE, UPDATE, DELETE, LOGIN, ACCESS_DENIED, etc.
+  resource      String                          // Recurso afetado (ex: /api/employees)
+  resourceId    String?                         // ID do recurso específico (opcional)
+  details       String?                         // JSON com detalhes adicionais
+  ipAddress     String                          // IP do cliente
+  userAgent     String                          // User agent do navegador
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// Tentativas de login (para proteção contra força bruta)
+model LoginAttempt {
+  id            String    @id @default(cuid())
+  email         String                          // Email tentado
+  ipAddress     String                          // IP da tentativa
+  success       Boolean                         // Se o login foi bem-sucedido
+  userAgent     String?                         // User agent
+  createdAt     DateTime  @default(now())
+
+  @@index([email])
+  @@index([ipAddress])
+  @@index([createdAt])
+  @@map("login_attempts")
+}

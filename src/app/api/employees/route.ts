@@ -1,15 +1,19 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { 
+  withApiSecurity, 
+  successResponse, 
+  errorResponse,
+  logAuditAction,
+  type ApiContext 
+} from "@/lib/api-security";
+import { createEmployeeSchema } from "@/lib/validation-schemas";
 
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
+// ============================================================================
+// GET /api/employees - Lista todos os funcionários
+// ============================================================================
+export const GET = withApiSecurity(
+  async (request: NextRequest, context: ApiContext) => {
     const employees = await prisma.employee.findMany({
       orderBy: { name: "asc" },
       include: {
@@ -19,65 +23,82 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(employees);
-  } catch (error) {
-    console.error("Erro ao buscar funcionários:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar funcionários" },
-      { status: 500 }
-    );
+    return successResponse(employees);
+  },
+  {
+    requireAuth: true,
+    // ADMIN e MANAGER podem ver funcionários
   }
-}
+);
 
-export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
+// ============================================================================
+// POST /api/employees - Cria um novo funcionário
+// ============================================================================
+export const POST = withApiSecurity(
+  async (request: NextRequest, context: ApiContext, data: unknown) => {
+    const employeeData = data as {
+      name: string;
+      role: string;
+      phone?: string | null;
+      document?: string | null;
+      hireDate?: string | null;
+      salary?: number;
+      worksLunch?: boolean;
+      lunchPaymentType?: string;
+      lunchValue?: number;
+      lunchStartTime?: string | null;
+      lunchEndTime?: string | null;
+      worksDinner?: boolean;
+      dinnerPaymentType?: string;
+      dinnerWeekdayValue?: number;
+      dinnerWeekendValue?: number;
+      dinnerStartTime?: string | null;
+      dinnerEndTime?: string | null;
+    };
 
-    const body = await request.json();
-    const { 
-      name, role, phone, document, hireDate,
-      worksLunch, lunchPaymentType, lunchValue, lunchStartTime, lunchEndTime,
-      worksDinner, dinnerPaymentType, dinnerWeekdayValue, dinnerWeekendValue, dinnerStartTime, dinnerEndTime
-    } = body;
-
-    if (!name) {
-      return NextResponse.json(
-        { error: "Nome é obrigatório" },
-        { status: 400 }
-      );
-    }
-
+    // Criar funcionário com todos os campos
     const employee = await prisma.employee.create({
       data: {
-        name,
-        role: role || "Funcionário",
-        phone: phone || null,
-        document: document || null,
-        hireDate: hireDate ? new Date(hireDate) : new Date(),
-        worksLunch: worksLunch || false,
-        lunchPaymentType: lunchPaymentType || "SHIFT",
-        lunchValue: parseFloat(lunchValue) || 0,
-        lunchStartTime: lunchStartTime || null,
-        lunchEndTime: lunchEndTime || null,
-        worksDinner: worksDinner !== false,
-        dinnerPaymentType: dinnerPaymentType || "SHIFT",
-        dinnerWeekdayValue: parseFloat(dinnerWeekdayValue) || 0,
-        dinnerWeekendValue: parseFloat(dinnerWeekendValue) || 0,
-        dinnerStartTime: dinnerStartTime || null,
-        dinnerEndTime: dinnerEndTime || null,
+        name: employeeData.name,
+        role: employeeData.role || "Funcionário",
+        phone: employeeData.phone || null,
+        document: employeeData.document || null,
+        hireDate: employeeData.hireDate ? new Date(employeeData.hireDate) : new Date(),
+        salary: employeeData.salary || 0,
+        worksLunch: employeeData.worksLunch || false,
+        lunchPaymentType: employeeData.lunchPaymentType || "SHIFT",
+        lunchValue: employeeData.lunchValue || 0,
+        lunchStartTime: employeeData.lunchStartTime || null,
+        lunchEndTime: employeeData.lunchEndTime || null,
+        worksDinner: employeeData.worksDinner !== false,
+        dinnerPaymentType: employeeData.dinnerPaymentType || "SHIFT",
+        dinnerWeekdayValue: employeeData.dinnerWeekdayValue || 0,
+        dinnerWeekendValue: employeeData.dinnerWeekendValue || 0,
+        dinnerStartTime: employeeData.dinnerStartTime || null,
+        dinnerEndTime: employeeData.dinnerEndTime || null,
       },
     });
 
-    return NextResponse.json(employee, { status: 201 });
-  } catch (error) {
-    console.error("Erro ao criar funcionário:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar funcionário" },
-      { status: 500 }
-    );
-  }
-}
+    // Log de auditoria
+    await logAuditAction({
+      userId: context.session.user.id,
+      userEmail: context.session.user.email,
+      action: "CREATE_EMPLOYEE",
+      resource: "/api/employees",
+      resourceId: employee.id,
+      details: { 
+        employeeName: employee.name,
+        employeeRole: employee.role,
+      },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
 
+    return successResponse(employee, 201);
+  },
+  {
+    requireAuth: true,
+    bodySchema: createEmployeeSchema,
+    auditAction: "CREATE_EMPLOYEE",
+  }
+);

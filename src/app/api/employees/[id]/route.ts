@@ -1,122 +1,174 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { 
+  withApiSecurity, 
+  successResponse, 
+  notFoundResponse,
+  logAuditAction,
+  type ApiContext 
+} from "@/lib/api-security";
+import { updateEmployeeSchema } from "@/lib/validation-schemas";
 
+// ============================================================================
+// GET /api/employees/[id] - Busca um funcionário específico
+// ============================================================================
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
-    const { id } = await params;
-    const employee = await prisma.employee.findUnique({
-      where: { id },
-      include: {
-        advances: {
-          orderBy: { requestDate: "desc" },
+  const handler = withApiSecurity(
+    async (req: NextRequest, context: ApiContext) => {
+      const { id } = await params;
+      
+      const employee = await prisma.employee.findUnique({
+        where: { id },
+        include: {
+          advances: {
+            orderBy: { requestDate: "desc" },
+            take: 5,
+          },
+          _count: {
+            select: { 
+              advances: true,
+              timeEntries: true,
+            },
+          },
         },
-        payrollEntries: {
-          orderBy: { month: "desc" },
-        },
-      },
-    });
+      });
 
-    if (!employee) {
-      return NextResponse.json(
-        { error: "Funcionário não encontrado" },
-        { status: 404 }
-      );
+      if (!employee) {
+        return notFoundResponse("Funcionário");
+      }
+
+      return successResponse(employee);
+    },
+    {
+      requireAuth: true,
     }
+  );
 
-    return NextResponse.json(employee);
-  } catch (error) {
-    console.error("Erro ao buscar funcionário:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar funcionário" },
-      { status: 500 }
-    );
-  }
+  return handler(request);
 }
 
+// ============================================================================
+// PUT /api/employees/[id] - Atualiza um funcionário
+// ============================================================================
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const handler = withApiSecurity(
+    async (req: NextRequest, context: ApiContext, data: unknown) => {
+      const { id } = await params;
+      const updates = data as Record<string, unknown>;
+
+      // Verificar se funcionário existe
+      const existingEmployee = await prisma.employee.findUnique({
+        where: { id },
+      });
+
+      if (!existingEmployee) {
+        return notFoundResponse("Funcionário");
+      }
+
+      // Preparar dados para atualização (apenas campos fornecidos)
+      const updateData: Record<string, unknown> = {};
+      
+      const allowedFields = [
+        "name", "role", "phone", "document", "salary", "active",
+        "worksLunch", "lunchPaymentType", "lunchValue", "lunchStartTime", "lunchEndTime",
+        "worksDinner", "dinnerPaymentType", "dinnerWeekdayValue", "dinnerWeekendValue", 
+        "dinnerStartTime", "dinnerEndTime"
+      ];
+
+      for (const field of allowedFields) {
+        if (updates[field] !== undefined) {
+          updateData[field] = updates[field];
+        }
+      }
+
+      // Tratar hireDate separadamente
+      if (updates.hireDate) {
+        updateData.hireDate = new Date(updates.hireDate as string);
+      }
+
+      // Atualizar funcionário
+      const employee = await prisma.employee.update({
+        where: { id },
+        data: updateData,
+      });
+
+      // Log de auditoria
+      await logAuditAction({
+        userId: context.session.user.id,
+        userEmail: context.session.user.email,
+        action: "UPDATE_EMPLOYEE",
+        resource: `/api/employees/${id}`,
+        resourceId: id,
+        details: { 
+          employeeName: employee.name,
+          updatedFields: Object.keys(updateData),
+        },
+        ip: context.ip,
+        userAgent: context.userAgent,
+      });
+
+      return successResponse(employee);
+    },
+    {
+      requireAuth: true,
+      bodySchema: updateEmployeeSchema,
     }
+  );
 
-    const { id } = await params;
-    const body = await request.json();
-    const { 
-      name, role, phone, document, hireDate, active,
-      worksLunch, lunchPaymentType, lunchValue, lunchStartTime, lunchEndTime,
-      worksDinner, dinnerPaymentType, dinnerWeekdayValue, dinnerWeekendValue, dinnerStartTime, dinnerEndTime
-    } = body;
-
-    const updateData: Record<string, unknown> = {};
-    if (name !== undefined) updateData.name = name;
-    if (role !== undefined) updateData.role = role;
-    if (phone !== undefined) updateData.phone = phone;
-    if (document !== undefined) updateData.document = document;
-    if (hireDate !== undefined) updateData.hireDate = new Date(hireDate);
-    if (active !== undefined) updateData.active = active;
-    if (worksLunch !== undefined) updateData.worksLunch = worksLunch;
-    if (lunchPaymentType !== undefined) updateData.lunchPaymentType = lunchPaymentType;
-    if (lunchValue !== undefined) updateData.lunchValue = parseFloat(lunchValue) || 0;
-    if (lunchStartTime !== undefined) updateData.lunchStartTime = lunchStartTime;
-    if (lunchEndTime !== undefined) updateData.lunchEndTime = lunchEndTime;
-    if (worksDinner !== undefined) updateData.worksDinner = worksDinner;
-    if (dinnerPaymentType !== undefined) updateData.dinnerPaymentType = dinnerPaymentType;
-    if (dinnerWeekdayValue !== undefined) updateData.dinnerWeekdayValue = parseFloat(dinnerWeekdayValue) || 0;
-    if (dinnerWeekendValue !== undefined) updateData.dinnerWeekendValue = parseFloat(dinnerWeekendValue) || 0;
-    if (dinnerStartTime !== undefined) updateData.dinnerStartTime = dinnerStartTime;
-    if (dinnerEndTime !== undefined) updateData.dinnerEndTime = dinnerEndTime;
-
-    const employee = await prisma.employee.update({
-      where: { id },
-      data: updateData,
-    });
-
-    return NextResponse.json(employee);
-  } catch (error) {
-    console.error("Erro ao atualizar funcionário:", error);
-    return NextResponse.json(
-      { error: "Erro ao atualizar funcionário" },
-      { status: 500 }
-    );
-  }
+  return handler(request);
 }
 
+// ============================================================================
+// DELETE /api/employees/[id] - Remove um funcionário
+// ============================================================================
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  const handler = withApiSecurity(
+    async (req: NextRequest, context: ApiContext) => {
+      const { id } = await params;
+
+      // Verificar se funcionário existe
+      const employee = await prisma.employee.findUnique({
+        where: { id },
+        select: { id: true, name: true },
+      });
+
+      if (!employee) {
+        return notFoundResponse("Funcionário");
+      }
+
+      // Deletar funcionário (cascade vai remover advances, time entries, etc.)
+      await prisma.employee.delete({
+        where: { id },
+      });
+
+      // Log de auditoria
+      await logAuditAction({
+        userId: context.session.user.id,
+        userEmail: context.session.user.email,
+        action: "DELETE_EMPLOYEE",
+        resource: `/api/employees/${id}`,
+        resourceId: id,
+        details: { deletedEmployeeName: employee.name },
+        ip: context.ip,
+        userAgent: context.userAgent,
+      });
+
+      return successResponse({ message: "Funcionário excluído com sucesso" });
+    },
+    {
+      requireAuth: true,
+      requiredRoles: ["ADMIN"], // Apenas admin pode deletar
     }
+  );
 
-    const { id } = await params;
-    await prisma.employee.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ message: "Funcionário excluído com sucesso" });
-  } catch (error) {
-    console.error("Erro ao excluir funcionário:", error);
-    return NextResponse.json(
-      { error: "Erro ao excluir funcionário" },
-      { status: 500 }
-    );
-  }
+  return handler(request);
 }
-

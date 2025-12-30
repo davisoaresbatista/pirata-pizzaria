@@ -244,13 +244,13 @@ export default function RelatoriosPage() {
                   Nenhuma despesa no período
                 </p>
               ) : (
-                <Table>
+                <Table className="table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead className="text-center">Lançamentos</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right">%</TableHead>
+                      <TableHead className="w-[40%]">Categoria</TableHead>
+                      <TableHead className="w-[20%] text-center">Lançamentos</TableHead>
+                      <TableHead className="w-[25%] text-right">Total</TableHead>
+                      <TableHead className="w-[15%] text-right">%</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -298,13 +298,13 @@ export default function RelatoriosPage() {
                   Nenhuma receita no período
                 </p>
               ) : (
-                <Table>
+                <Table className="table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Fonte</TableHead>
-                      <TableHead className="text-center">Lançamentos</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead className="text-right">%</TableHead>
+                      <TableHead className="w-[40%]">Fonte</TableHead>
+                      <TableHead className="w-[20%] text-center">Lançamentos</TableHead>
+                      <TableHead className="w-[25%] text-right">Total</TableHead>
+                      <TableHead className="w-[15%] text-right">%</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -352,15 +352,15 @@ export default function RelatoriosPage() {
                   Nenhum funcionário ativo
                 </p>
               ) : (
-                <Table>
+                <Table className="table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Funcionário</TableHead>
-                      <TableHead>Cargo</TableHead>
-                      <TableHead className="text-right">Salário Base</TableHead>
-                      <TableHead className="text-right">Adiantamentos</TableHead>
-                      <TableHead className="text-right">Líquido</TableHead>
-                      <TableHead>Status Pagamento</TableHead>
+                      <TableHead className="w-[20%]">Funcionário</TableHead>
+                      <TableHead className="w-[18%]">Cargo</TableHead>
+                      <TableHead className="w-[15%] text-right">Salário Base</TableHead>
+                      <TableHead className="w-[15%] text-right">Adiantamentos</TableHead>
+                      <TableHead className="w-[15%] text-right">Líquido</TableHead>
+                      <TableHead className="w-[17%] text-center">Status Pagamento</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

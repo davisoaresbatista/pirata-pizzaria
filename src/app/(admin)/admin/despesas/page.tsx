@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AdminOnly } from "@/components/admin/AdminOnly";
+import { getLocalDateString } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Receipt } from "lucide-react";
+import { Plus, Trash2, Loader2, Receipt, DollarSign, TrendingUp, TrendingDown, BarChart3, ShoppingCart, Zap, Home, Wrench, Calendar, CalendarDays, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 interface Expense {
   id: string;
@@ -64,7 +66,7 @@ export default function DespesasPage() {
     category: "",
     description: "",
     amount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDateString(),
     notes: "",
   });
 
@@ -105,7 +107,7 @@ export default function DespesasPage() {
           category: "",
           description: "",
           amount: "",
-          date: new Date().toISOString().split("T")[0],
+          date: getLocalDateString(),
           notes: "",
         });
       }
@@ -136,7 +138,92 @@ export default function DespesasPage() {
   const getCategoryLabel = (value: string) =>
     categories.find((c) => c.value === value)?.label || value;
 
+  // Métricas
+  const expenseCount = expenses.length;
+  const avgExpense = expenseCount > 0 ? totalExpenses / expenseCount : 0;
+  
+  // Métricas de período
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay()); // Domingo
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const startOfLastWeek = new Date(startOfWeek);
+  startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+  
+  // Despesas desta semana
+  const thisWeekExpenses = expenses.filter(e => {
+    const expDate = new Date(e.date);
+    return expDate >= startOfWeek;
+  });
+  const thisWeekTotal = thisWeekExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  
+  // Despesas da semana passada (do mês selecionado)
+  const lastWeekExpenses = expenses.filter(e => {
+    const expDate = new Date(e.date);
+    return expDate >= startOfLastWeek && expDate < startOfWeek;
+  });
+  const lastWeekTotal = lastWeekExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  
+  // Variação semanal
+  const weeklyChange = lastWeekTotal > 0 
+    ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100 
+    : 0;
+
+  // Média diária do mês
+  const daysInMonth = new Date(
+    parseInt(selectedMonth.split("-")[0]),
+    parseInt(selectedMonth.split("-")[1]),
+    0
+  ).getDate();
+  const currentDay = today.getMonth() + 1 === parseInt(selectedMonth.split("-")[1]) 
+    ? today.getDate() 
+    : daysInMonth;
+  const dailyAvg = currentDay > 0 ? totalExpenses / currentDay : 0;
+  
+  // Projeção do mês
+  const monthProjection = dailyAvg * daysInMonth;
+
+  // Maior despesa
+  const maxExpense = expenses.length > 0 
+    ? expenses.reduce((max, e) => Number(e.amount) > Number(max.amount) ? e : max, expenses[0])
+    : null;
+  
+  // Despesas por categoria
+  const expensesByCategory = categories.map(cat => {
+    const catExpenses = expenses.filter(e => e.category === cat.value);
+    const total = catExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+    return {
+      ...cat,
+      count: catExpenses.length,
+      total,
+      percentage: totalExpenses > 0 ? (total / totalExpenses) * 100 : 0,
+    };
+  }).filter(cat => cat.count > 0).sort((a, b) => b.total - a.total);
+
+  // Top 3 categorias
+  const topCategories = expensesByCategory.slice(0, 3);
+
+  // Ícone por categoria
+  const getCategoryIcon = (value: string) => {
+    switch (value) {
+      case "INGREDIENTS": return <ShoppingCart className="h-3.5 w-3.5" />;
+      case "UTILITIES": return <Zap className="h-3.5 w-3.5" />;
+      case "RENT": return <Home className="h-3.5 w-3.5" />;
+      case "MAINTENANCE": return <Wrench className="h-3.5 w-3.5" />;
+      default: return <Receipt className="h-3.5 w-3.5" />;
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  };
+
   return (
+    <AdminOnly>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -260,24 +347,181 @@ export default function DespesasPage() {
         </div>
       </div>
 
-      {/* Total */}
-      <Card className="bg-red-50 border-red-200">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
-              <Receipt className="h-6 w-6 text-red-600" />
+      {/* Métricas */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total do Mês */}
+        <Card className="bg-red-50 border-red-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-red-700">Total do Mês</CardTitle>
+            <DollarSign className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-700">{formatCurrency(totalExpenses)}</div>
+            <p className="text-xs text-red-600 mt-1">
+              {selectedMonth.split("-").reverse().join("/")}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Quantidade e Média */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Quantidade</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{expenseCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Média: {formatCurrency(avgExpense)}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Maior Despesa */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Maior Despesa</CardTitle>
+            <TrendingUp className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {maxExpense ? formatCurrency(Number(maxExpense.amount)) : "—"}
             </div>
-            <div>
-              <p className="text-sm text-red-600 font-medium">
-                Total de Despesas ({selectedMonth.split("-").reverse().join("/")})
-              </p>
-              <p className="text-3xl font-bold text-red-700">
-                R$ {totalExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              {maxExpense ? getCategoryLabel(maxExpense.category) : "Nenhuma despesa"}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Top Categorias */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Top Categorias</CardTitle>
+            <Receipt className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1.5">
+              {topCategories.length > 0 ? topCategories.map((cat, idx) => (
+                <div key={cat.value} className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    {getCategoryIcon(cat.value)}
+                    <span className="truncate max-w-[80px]">{cat.label}</span>
+                  </span>
+                  <span className="font-medium">{cat.percentage.toFixed(0)}%</span>
+                </div>
+              )) : (
+                <p className="text-xs text-muted-foreground">Nenhuma despesa</p>
+              )}
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Métricas de Período */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Esta Semana */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(thisWeekTotal)}</div>
+            <div className="flex items-center gap-1 text-xs mt-1">
+              {weeklyChange !== 0 && (
+                <>
+                  {weeklyChange > 0 ? (
+                    <ArrowUpRight className="h-3 w-3 text-red-500" />
+                  ) : (
+                    <ArrowDownRight className="h-3 w-3 text-green-500" />
+                  )}
+                  <span className={weeklyChange > 0 ? "text-red-600" : "text-green-600"}>
+                    {Math.abs(weeklyChange).toFixed(0)}% vs semana anterior
+                  </span>
+                </>
+              )}
+              {weeklyChange === 0 && lastWeekTotal === 0 && (
+                <span className="text-muted-foreground">Sem dados anteriores</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Semana Passada */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Semana Passada</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-muted-foreground">{formatCurrency(lastWeekTotal)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {lastWeekExpenses.length} despesas
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Média Diária */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Média Diária</CardTitle>
+            <BarChart3 className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(dailyAvg)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Baseado em {currentDay} dias
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Projeção do Mês */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Projeção Mensal</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{formatCurrency(monthProjection)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Estimativa para {daysInMonth} dias
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Detalhamento por Categoria */}
+      {expensesByCategory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Despesas por Categoria</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {expensesByCategory.map((cat) => (
+                <div key={cat.value} className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2">
+                      {getCategoryIcon(cat.value)}
+                      <span className="font-medium">{cat.label}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {cat.count} {cat.count === 1 ? 'item' : 'itens'}
+                      </Badge>
+                    </span>
+                    <span className="font-semibold">{formatCurrency(cat.total)}</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-red-500 rounded-full transition-all"
+                      style={{ width: `${cat.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Table */}
       <Card>
@@ -295,14 +539,14 @@ export default function DespesasPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="w-[12%]">Data</TableHead>
+                    <TableHead className="w-[18%]">Categoria</TableHead>
+                    <TableHead className="w-[35%]">Descrição</TableHead>
+                    <TableHead className="w-[15%] text-right">Valor</TableHead>
+                    <TableHead className="w-[20%] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -339,6 +583,7 @@ export default function DespesasPage() {
         </CardContent>
       </Card>
     </div>
+    </AdminOnly>
   );
 }
 

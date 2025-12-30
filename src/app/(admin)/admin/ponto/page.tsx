@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { getLocalDateString } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -88,12 +89,12 @@ export default function PontoPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [errorMessage, setErrorMessage] = useState("");
 
   const [formData, setFormData] = useState({
     employeeId: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getLocalDateString(),
     workedLunch: false,
     workedDinner: false,
     clockInLunch: "",
@@ -571,7 +572,7 @@ export default function PontoPage() {
       </div>
 
       {/* Bater ponto rápido */}
-      {employeesWithoutEntry.length > 0 && selectedDate === new Date().toISOString().split("T")[0] && (
+      {employeesWithoutEntry.length > 0 && selectedDate === getLocalDateString() && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -634,20 +635,20 @@ export default function PontoPage() {
               Nenhum registro de ponto para esta data
             </div>
           ) : (
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Funcionário</TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="w-[25%]">Funcionário</TableHead>
+                  <TableHead className="w-[25%] text-center">
                     <Sun className="h-4 w-4 inline mr-1 text-amber-500" />
                     Almoço
                   </TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="w-[25%] text-center">
                     <Moon className="h-4 w-4 inline mr-1 text-blue-500" />
                     Jantar
                   </TableHead>
-                  {isAdmin && <TableHead className="text-right">Valor</TableHead>}
-                  <TableHead className="text-center">Ações</TableHead>
+                  {isAdmin && <TableHead className="w-[12%] text-right">Valor</TableHead>}
+                  <TableHead className="w-[13%] text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

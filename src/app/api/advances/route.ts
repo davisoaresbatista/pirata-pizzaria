@@ -1,15 +1,18 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { 
+  withApiSecurity, 
+  successResponse, 
+  logAuditAction,
+  type ApiContext 
+} from "@/lib/api-security";
+import { createAdvanceSchema, advanceQuerySchema } from "@/lib/validation-schemas";
 
-export async function GET(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
-
+// ============================================================================
+// GET /api/advances - Lista adiantamentos
+// ============================================================================
+export const GET = withApiSecurity(
+  async (request: NextRequest, context: ApiContext) => {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const employeeId = searchParams.get("employeeId");
@@ -28,39 +31,48 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json(advances);
-  } catch (error) {
-    console.error("Erro ao buscar adiantamentos:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar adiantamentos" },
-      { status: 500 }
-    );
+    return successResponse(advances);
+  },
+  {
+    requireAuth: true,
+    querySchema: advanceQuerySchema,
   }
-}
+);
 
-export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
+// ============================================================================
+// POST /api/advances - Cria um novo adiantamento
+// ============================================================================
+export const POST = withApiSecurity(
+  async (request: NextRequest, context: ApiContext, data: unknown) => {
+    const advanceData = data as {
+      employeeId: string;
+      amount: number;
+      requestDate?: string | null;
+      notes?: string | null;
+    };
 
-    const body = await request.json();
-    const { employeeId, amount, requestDate, notes } = body;
+    // Verificar se funcionário existe
+    const employee = await prisma.employee.findUnique({
+      where: { id: advanceData.employeeId },
+      select: { id: true, name: true },
+    });
 
-    if (!employeeId || !amount) {
-      return NextResponse.json(
-        { error: "Funcionário e valor são obrigatórios" },
-        { status: 400 }
+    if (!employee) {
+      return successResponse(
+        { error: "Funcionário não encontrado" },
+        404
       );
     }
 
+    // Criar adiantamento
     const advance = await prisma.advance.create({
       data: {
-        employeeId,
-        amount: parseFloat(amount),
-        requestDate: requestDate ? new Date(requestDate) : new Date(),
-        notes: notes || null,
+        employeeId: advanceData.employeeId,
+        amount: advanceData.amount,
+        requestDate: advanceData.requestDate 
+          ? new Date(advanceData.requestDate) 
+          : new Date(),
+        notes: advanceData.notes || null,
         status: "PENDING",
       },
       include: {
@@ -70,13 +82,26 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(advance, { status: 201 });
-  } catch (error) {
-    console.error("Erro ao criar adiantamento:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar adiantamento" },
-      { status: 500 }
-    );
-  }
-}
+    // Log de auditoria
+    await logAuditAction({
+      userId: context.session.user.id,
+      userEmail: context.session.user.email,
+      action: "CREATE_ADVANCE",
+      resource: "/api/advances",
+      resourceId: advance.id,
+      details: { 
+        employeeName: employee.name,
+        amount: advanceData.amount,
+      },
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
 
+    return successResponse(advance, 201);
+  },
+  {
+    requireAuth: true,
+    bodySchema: createAdvanceSchema,
+    auditAction: "CREATE_ADVANCE",
+  }
+);

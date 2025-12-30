@@ -34,7 +34,8 @@ const navigation = [
   { name: "Adiantamentos", href: "/admin/adiantamentos", icon: Wallet, adminOnly: true },
   { name: "Despesas", href: "/admin/despesas", icon: Receipt, adminOnly: true },
   { name: "Receitas", href: "/admin/receitas", icon: TrendingUp, adminOnly: true },
-  { name: "Usuários", href: "/admin/usuarios", icon: Shield, adminOnly: true },
+  { name: "Usuários", href: "/admin/usuarios", icon: Users, adminOnly: true },
+  { name: "Segurança", href: "/admin/seguranca", icon: Shield, adminOnly: true },
   { name: "Configurações", href: "/admin/configuracoes", icon: Settings, adminOnly: true },
 ];
 

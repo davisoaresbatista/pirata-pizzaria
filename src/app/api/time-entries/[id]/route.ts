@@ -85,6 +85,10 @@ function calculateShiftValuesFromEmployee(
     }
   }
   
+  // Arredondar para 2 casas decimais
+  lunchValue = Math.round(lunchValue * 100) / 100;
+  dinnerValue = Math.round(dinnerValue * 100) / 100;
+  
   return { lunchValue, dinnerValue, totalValue: lunchValue + dinnerValue };
 }
 

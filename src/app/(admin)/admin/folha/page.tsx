@@ -207,18 +207,18 @@ export default function FolhaPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Funcionário</TableHead>
-                    <TableHead>Cargo</TableHead>
-                    <TableHead className="text-right">Salário Base</TableHead>
-                    <TableHead className="text-right">Adiantamentos</TableHead>
-                    <TableHead className="text-right">Bônus</TableHead>
-                    <TableHead className="text-right">Descontos</TableHead>
-                    <TableHead className="text-right">Salário Líquido</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="w-[14%]">Funcionário</TableHead>
+                    <TableHead className="w-[12%]">Cargo</TableHead>
+                    <TableHead className="w-[11%] text-right">Salário Base</TableHead>
+                    <TableHead className="w-[11%] text-right">Adiantamentos</TableHead>
+                    <TableHead className="w-[10%] text-right">Bônus</TableHead>
+                    <TableHead className="w-[10%] text-right">Descontos</TableHead>
+                    <TableHead className="w-[12%] text-right">Sal. Líquido</TableHead>
+                    <TableHead className="w-[10%] text-center">Status</TableHead>
+                    <TableHead className="w-[10%] text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

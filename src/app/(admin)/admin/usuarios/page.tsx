@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
+import { AdminOnly } from "@/components/admin/AdminOnly";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -168,6 +169,7 @@ export default function UsuariosPage() {
   }
 
   return (
+    <AdminOnly>
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -306,14 +308,14 @@ export default function UsuariosPage() {
               Nenhum usuário cadastrado
             </div>
           ) : (
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Criado em</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="w-[22%]">Nome</TableHead>
+                  <TableHead className="w-[28%]">Email</TableHead>
+                  <TableHead className="w-[15%] text-center">Tipo</TableHead>
+                  <TableHead className="w-[15%]">Criado em</TableHead>
+                  <TableHead className="w-[20%] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -367,6 +369,7 @@ export default function UsuariosPage() {
         </CardContent>
       </Card>
     </div>
+    </AdminOnly>
   );
 }
 
