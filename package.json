@@ -4,11 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "cp prisma/schema.mysql.prisma prisma/schema.prisma",
-    "build": "prisma generate && next build",
+    "build": "cp prisma/schema.mysql.prisma prisma/schema.prisma && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate || true",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",

@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 // ============================================================================
 export async function GET() {
   try {
+    // Testar conexão primeiro
+    await prisma.$connect();
+    
     const categories = await prisma.menuCategory.findMany({
       where: { active: true },
       orderBy: { order: "asc" },
@@ -41,9 +44,15 @@ export async function GET() {
 
     return NextResponse.json(formattedCategories);
   } catch (error) {
-    console.error("Erro ao buscar cardápio:", error);
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    const errorDetails = {
+      message: errorMessage,
+      dbProvider: process.env.DATABASE_URL?.split(":")[0] || "unknown",
+      nodeEnv: process.env.NODE_ENV,
+    };
+    console.error("Erro ao buscar cardápio:", errorDetails);
     return NextResponse.json(
-      { error: "Erro ao buscar cardápio" },
+      { error: "Erro ao buscar cardápio", details: errorDetails },
       { status: 500 }
     );
   }
