@@ -292,18 +292,55 @@ export default function CardapioPage() {
               </div>
 
               {/* Doces Gallery */}
-              <div className="relative h-64 rounded-3xl overflow-hidden mb-8">
-                <Image
-                  src="https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?w=1200&q=80"
-                  alt="Pizzas Doces"
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-600/80 to-purple-600/80" />
-                <div className="absolute inset-0 flex items-center justify-center text-white text-center p-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="relative h-48 rounded-2xl overflow-hidden group">
+                  <Image
+                    src="https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400&q=80"
+                    alt="Pizza de Chocolate"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
+                  <span className="absolute bottom-4 left-4 text-white font-bold">Brigadeiro</span>
+                </div>
+                <div className="relative h-48 rounded-2xl overflow-hidden group">
+                  <Image
+                    src="https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80"
+                    alt="Pizza com Morango"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
+                  <span className="absolute bottom-4 left-4 text-white font-bold">Sensação</span>
+                </div>
+                <div className="relative h-48 rounded-2xl overflow-hidden group">
+                  <Image
+                    src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80"
+                    alt="Pizza de Banana"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
+                  <span className="absolute bottom-4 left-4 text-white font-bold">Chocobanana</span>
+                </div>
+                <div className="relative h-48 rounded-2xl overflow-hidden group">
+                  <Image
+                    src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=80"
+                    alt="Pizza com Coco"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
+                  <span className="absolute bottom-4 left-4 text-white font-bold">Prestígio</span>
+                </div>
+              </div>
+              
+              {/* Banner Doces */}
+              <div className="relative h-32 rounded-2xl overflow-hidden mb-8 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500">
+                <div className="absolute inset-0 flex items-center justify-center text-white text-center p-4">
                   <div>
-                    <h3 className="text-3xl font-bold mb-2">Finalize com Doçura 🍫</h3>
-                    <p className="text-white/90 max-w-xl">Experimente nossas pizzas doces irresistíveis, perfeitas para compartilhar!</p>
+                    <h3 className="text-2xl md:text-3xl font-bold">🍫 Finalize com Doçura! 🍓</h3>
+                    <p className="text-white/90 text-sm md:text-base">Pizzas doces irresistíveis, perfeitas para compartilhar</p>
                   </div>
                 </div>
               </div>
