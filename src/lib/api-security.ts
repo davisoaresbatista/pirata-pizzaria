@@ -191,7 +191,7 @@ export function withApiSecurity<T = unknown>(
             
             await logAuditAction({
               userId: session.user.id,
-              userEmail: session.user.email,
+              userEmail: session.user.email || "unknown",
               action: "ACCESS_DENIED",
               resource: request.nextUrl.pathname,
               details: { requiredRoles, userRole },
