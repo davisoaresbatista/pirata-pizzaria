@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  Utensils, Wine, AlertCircle, Search, Flame, Star, Leaf, Sparkles,
+  Utensils, Wine, Search, Flame, Star, Leaf, Sparkles,
   Fish, Drumstick, Beef, Soup, UtensilsCrossed, GlassWater, Salad
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -199,18 +199,6 @@ export default function CardapioPage() {
         </div>
       </section>
 
-      {/* Aviso Preços */}
-      <section className="container mx-auto px-4 -mt-8 relative z-20">
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 shadow-xl flex items-center gap-4 max-w-3xl mx-auto">
-          <div className="bg-white/20 rounded-full p-3 shrink-0">
-            <AlertCircle className="h-6 w-6 text-white" />
-          </div>
-          <div className="text-white">
-            <p className="font-bold">Preços exclusivos para o salão</p>
-            <p className="text-white/90 text-sm">Os valores abaixo são praticados somente para consumo no estabelecimento.</p>
-          </div>
-        </div>
-      </section>
 
       {/* Menu */}
       <section className="container mx-auto px-4 py-12">

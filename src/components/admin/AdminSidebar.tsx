@@ -19,6 +19,7 @@ import {
   Calculator,
   Settings,
   Shield,
+  Pizza,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,6 +29,7 @@ import { useState } from "react";
 
 const navigation = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard, adminOnly: true },
+  { name: "Cardápio", href: "/admin/cardapio", icon: Pizza, adminOnly: true },
   { name: "Funcionários", href: "/admin/funcionarios", icon: Users, adminOnly: true },
   { name: "Controle de Ponto", href: "/admin/ponto", icon: Clock, adminOnly: false },
   { name: "Fechamento", href: "/admin/fechamento", icon: Calculator, adminOnly: true },

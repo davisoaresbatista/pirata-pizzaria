@@ -31,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Shield, User, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Shield, User, AlertCircle, Search, X } from "lucide-react";
 import { redirect } from "next/navigation";
 
 interface UserData {
@@ -53,6 +53,10 @@ export default function UsuariosPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Estados de filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "ADMIN" | "MANAGER">("all");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -159,6 +163,26 @@ export default function UsuariosPage() {
     });
     setErrorMessage("");
   };
+
+  // Lógica de filtros
+  const filteredUsers = users.filter((user) => {
+    // Filtro por busca
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtro por tipo de acesso
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
+
+  // Limpar filtros
+  const clearFilters = () => {
+    setSearchTerm("");
+    setRoleFilter("all");
+  };
+
+  const hasActiveFilters = searchTerm || roleFilter !== "all";
 
   if (isLoading) {
     return (
@@ -297,15 +321,72 @@ export default function UsuariosPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Usuários Cadastrados</CardTitle>
-          <CardDescription>
-            Lista de todos os usuários com acesso ao sistema
-          </CardDescription>
+          <div className="flex flex-col gap-4">
+            <div>
+              <CardTitle>Usuários Cadastrados</CardTitle>
+              <CardDescription>
+                Lista de todos os usuários com acesso ao sistema
+              </CardDescription>
+            </div>
+
+            {/* Filtros */}
+            {users.length > 0 && (
+              <div className="flex flex-wrap gap-3 items-center">
+                {/* Busca */}
+                <div className="relative flex-1 min-w-[180px] max-w-[280px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-9"
+                  />
+                </div>
+
+                {/* Tipo de acesso */}
+                <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as typeof roleFilter)}>
+                  <SelectTrigger className="w-[150px] h-9">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="ADMIN">
+                      <span className="flex items-center gap-1">
+                        <Shield className="h-3 w-3 text-primary" />
+                        Administrador
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="MANAGER">
+                      <span className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        Gerente
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Limpar */}
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-9">
+                    <X className="h-4 w-4" />
+                    Limpar
+                  </Button>
+                )}
+
+                {/* Contador */}
+                {hasActiveFilters && (
+                  <span className="text-sm text-muted-foreground">
+                    {filteredUsers.length} de {users.length}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {users.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum usuário cadastrado
+              {users.length === 0 ? "Nenhum usuário cadastrado" : "Nenhum usuário encontrado com os filtros atuais"}
             </div>
           ) : (
             <Table className="table-fixed">
@@ -319,7 +400,7 @@ export default function UsuariosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>

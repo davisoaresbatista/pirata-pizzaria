@@ -252,3 +252,54 @@ model LoginAttempt {
   @@index([createdAt])
   @@map("login_attempts")
 }
+
+// ============================================================================
+// CARDÁPIO
+// ============================================================================
+
+// Categorias do cardápio
+model MenuCategory {
+  id            String    @id @default(cuid())
+  name          String    @unique               // Ex: "pizzas_salgadas", "pizzas_doces", "almoco", etc.
+  displayName   String                          // Ex: "Pizzas Salgadas"
+  description   String?
+  icon          String?                         // Nome do ícone (ex: "Pizza", "Cake", "Utensils")
+  order         Int       @default(0)           // Ordem de exibição
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  items         MenuItem[]
+
+  @@map("menu_categories")
+}
+
+// Itens do cardápio
+model MenuItem {
+  id            String    @id @default(cuid())
+  categoryId    String
+  category      MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  name          String                          // Nome do prato/pizza
+  description   String?                         // Ingredientes/descrição
+  price         Decimal                         // Preço
+  
+  // Flags especiais
+  active        Boolean   @default(true)        // Se está disponível
+  featured      Boolean   @default(false)       // Destaque (estrela)
+  popular       Boolean   @default(false)       // Popular (fogo)
+  spicy         Boolean   @default(false)       // Picante
+  vegetarian    Boolean   @default(false)       // Vegetariano
+  newItem       Boolean   @default(false)       // Novidade
+  
+  // Imagem (opcional)
+  imageUrl      String?
+  
+  // Ordem de exibição dentro da categoria
+  order         Int       @default(0)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("menu_items")
+}

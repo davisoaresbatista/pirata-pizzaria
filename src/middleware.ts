@@ -10,13 +10,23 @@ interface RateLimitConfig {
   maxRequests: number;
 }
 
+// Detectar ambiente de desenvolvimento
+const isDevelopment = process.env.NODE_ENV === "development";
+
+// Limites diferentes para dev e produção
 const RATE_LIMITS: Record<string, RateLimitConfig> = {
-  // Rotas de autenticação - mais restritivas para evitar força bruta
-  auth: { windowMs: 15 * 60 * 1000, maxRequests: 10 }, // 10 tentativas por 15 min
+  // Rotas de autenticação - SEMPRE restritivas para evitar força bruta
+  auth: { windowMs: 15 * 60 * 1000, maxRequests: 10 }, // 10 tentativas por 15 min (mantido)
   // APIs gerais
-  api: { windowMs: 60 * 1000, maxRequests: 100 }, // 100 requests por minuto
+  api: { 
+    windowMs: 60 * 1000, 
+    maxRequests: isDevelopment ? 300 : 100 // 300 dev / 100 prod
+  },
   // APIs de escrita (POST/PUT/DELETE)
-  apiWrite: { windowMs: 60 * 1000, maxRequests: 30 }, // 30 requests por minuto
+  apiWrite: { 
+    windowMs: 60 * 1000, 
+    maxRequests: isDevelopment ? 100 : 30 // 100 dev / 30 prod
+  },
 };
 
 // Store simples em memória para rate limiting (em produção usar Redis)
@@ -139,11 +149,22 @@ export async function middleware(request: NextRequest) {
   // ===== RATE LIMITING =====
   let rateLimitConfig: RateLimitConfig | null = null;
 
+  // APIs públicas com rate limiting mais permissivo (mas ainda protegidas)
+  const publicReadApis = ["/api/menu/public"];
+  const isPublicReadApi = publicReadApis.some(api => pathname.startsWith(api)) && request.method === "GET";
+
   if (pathname.startsWith("/api/auth")) {
+    // Autenticação SEMPRE com rate limiting restritivo
     rateLimitConfig = RATE_LIMITS.auth;
   } else if (pathname.startsWith("/api")) {
     const isWriteMethod = ["POST", "PUT", "DELETE", "PATCH"].includes(request.method);
-    rateLimitConfig = isWriteMethod ? RATE_LIMITS.apiWrite : RATE_LIMITS.api;
+    
+    if (isPublicReadApi) {
+      // APIs públicas de leitura: limite mais alto mas ainda protegido
+      rateLimitConfig = { windowMs: 60 * 1000, maxRequests: isDevelopment ? 500 : 200 };
+    } else {
+      rateLimitConfig = isWriteMethod ? RATE_LIMITS.apiWrite : RATE_LIMITS.api;
+    }
   }
 
   if (rateLimitConfig) {

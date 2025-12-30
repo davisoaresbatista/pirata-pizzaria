@@ -30,7 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Loader2, Users, Sun, Moon, Clock, DollarSign, UserCheck, UserX } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Sun, Moon, Clock, DollarSign, UserCheck, UserX, Search, X, SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -60,6 +60,13 @@ export default function FuncionariosPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+  // Estados de filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [shiftFilter, setShiftFilter] = useState<"all" | "lunch" | "dinner" | "both">("all");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+
   const [formData, setFormData] = useState({
     name: "",
     role: "",
@@ -236,6 +243,44 @@ export default function FuncionariosPage() {
       currency: "BRL",
     }).format(value);
   };
+
+  // Lógica de filtros
+  const filteredEmployees = employees.filter((emp) => {
+    // Filtro por busca
+    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.role?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtro por status
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && emp.active) ||
+      (statusFilter === "inactive" && !emp.active);
+
+    // Filtro por turno
+    const matchesShift =
+      shiftFilter === "all" ||
+      (shiftFilter === "lunch" && emp.worksLunch && !emp.worksDinner) ||
+      (shiftFilter === "dinner" && !emp.worksLunch && emp.worksDinner) ||
+      (shiftFilter === "both" && emp.worksLunch && emp.worksDinner);
+
+    // Filtro por função
+    const matchesRole = roleFilter === "all" || emp.role === roleFilter;
+
+    return matchesSearch && matchesStatus && matchesShift && matchesRole;
+  });
+
+  // Lista de funções únicas para o filtro
+  const uniqueRoles = [...new Set(employees.map((e) => e.role).filter(Boolean))];
+
+  // Limpar filtros
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setShiftFilter("all");
+    setRoleFilter("all");
+  };
+
+  const hasActiveFilters = searchTerm || statusFilter !== "all" || shiftFilter !== "all" || roleFilter !== "all";
 
   // Métricas
   const activeEmployees = employees.filter(e => e.active);
@@ -676,12 +721,89 @@ export default function FuncionariosPage() {
         </Card>
       </div>
 
+      {/* Filtros */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap gap-3 items-center">
+              {/* Busca */}
+              <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome ou função..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Status */}
+              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                <SelectTrigger className="w-[130px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Ativos</SelectItem>
+                  <SelectItem value="inactive">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Turno */}
+              <Select value={shiftFilter} onValueChange={(v) => setShiftFilter(v as typeof shiftFilter)}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Turno" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Turnos</SelectItem>
+                  <SelectItem value="lunch">Só Almoço</SelectItem>
+                  <SelectItem value="dinner">Só Jantar</SelectItem>
+                  <SelectItem value="both">Ambos</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Função */}
+              {uniqueRoles.length > 0 && (
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Função" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas Funções</SelectItem>
+                    {uniqueRoles.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Limpar filtros */}
+              {hasActiveFilters && (
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1">
+                  <X className="h-4 w-4" />
+                  Limpar
+                </Button>
+              )}
+            </div>
+
+            {/* Contador de resultados */}
+            {hasActiveFilters && (
+              <p className="text-sm text-muted-foreground">
+                Exibindo {filteredEmployees.length} de {employees.length} funcionários
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Table */}
       <Card>
         <CardContent className="pt-6">
-          {employees.length === 0 ? (
+          {filteredEmployees.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              Nenhum funcionário cadastrado
+              {employees.length === 0 ? "Nenhum funcionário cadastrado" : "Nenhum funcionário encontrado com os filtros atuais"}
             </p>
           ) : (
             <Table className="table-fixed">
@@ -696,7 +818,7 @@ export default function FuncionariosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {employees.map((employee) => (
+                {filteredEmployees.map((employee) => (
                   <TableRow key={employee.id} className={!employee.active ? "opacity-50" : ""}>
                     <TableCell>
                       <div>
@@ -709,14 +831,10 @@ export default function FuncionariosPage() {
                     <TableCell>
                       <div className="flex justify-center gap-2">
                         {employee.worksLunch && (
-                          <span title="Almoço">
-                            <Sun className="h-4 w-4 text-amber-500" />
-                          </span>
+                          <Sun className="h-4 w-4 text-amber-500" title="Almoço" />
                         )}
                         {employee.worksDinner && (
-                          <span title="Jantar">
-                            <Moon className="h-4 w-4 text-blue-500" />
-                          </span>
+                          <Moon className="h-4 w-4 text-blue-500" title="Jantar" />
                         )}
                         {!employee.worksLunch && !employee.worksDinner && (
                           <span className="text-muted-foreground">-</span>

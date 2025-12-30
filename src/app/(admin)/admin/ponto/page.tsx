@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/table";
 import { 
   Plus, Pencil, Trash2, Loader2, Sun, Moon, Clock, 
-  LogIn, LogOut, AlertCircle, CheckCircle2
+  LogIn, LogOut, AlertCircle, CheckCircle2, Search, X, Filter
 } from "lucide-react";
 
 interface Employee {
@@ -91,6 +91,11 @@ export default function PontoPage() {
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Estados de filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [shiftFilter, setShiftFilter] = useState<"all" | "lunch" | "dinner">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "complete" | "pending">("all");
 
   const [formData, setFormData] = useState({
     employeeId: "",
@@ -318,12 +323,45 @@ export default function PontoPage() {
     return time;
   };
 
+  // Lógica de filtros
+  const filteredEntries = timeEntries.filter((entry) => {
+    // Filtro por busca
+    const matchesSearch = entry.employee.name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtro por turno
+    const matchesShift =
+      shiftFilter === "all" ||
+      (shiftFilter === "lunch" && entry.workedLunch) ||
+      (shiftFilter === "dinner" && entry.workedDinner);
+
+    // Filtro por status (ponto completo ou pendente)
+    const lunchComplete = !entry.workedLunch || (entry.clockInLunch && entry.clockOutLunch);
+    const dinnerComplete = !entry.workedDinner || (entry.clockInDinner && entry.clockOutDinner);
+    const isComplete = lunchComplete && dinnerComplete;
+
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "complete" && isComplete) ||
+      (statusFilter === "pending" && !isComplete);
+
+    return matchesSearch && matchesShift && matchesStatus;
+  });
+
+  // Limpar filtros
+  const clearFilters = () => {
+    setSearchTerm("");
+    setShiftFilter("all");
+    setStatusFilter("all");
+  };
+
+  const hasActiveFilters = searchTerm || shiftFilter !== "all" || statusFilter !== "all";
+
   // Funcionários sem registro hoje
   const employeesWithoutEntry = employees.filter(
     emp => !timeEntries.some(entry => entry.employeeId === emp.id)
   );
 
-  // Total do dia
+  // Total do dia (baseado nos filtrados para exibição, mas o resumo usa todos)
   const totalDay = timeEntries.reduce((sum, e) => sum + Number(e.totalValue), 0);
 
   if (isLoading) {
@@ -620,19 +658,88 @@ export default function PontoPage() {
       {/* Tabela de registros */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Registros do Dia</CardTitle>
-            {isAdmin && (
-              <Badge variant="outline" className="text-lg px-3 py-1">
-                Total: {formatCurrency(totalDay)}
-              </Badge>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <CardTitle>Registros do Dia</CardTitle>
+              {isAdmin && (
+                <Badge variant="outline" className="text-lg px-3 py-1">
+                  Total: {formatCurrency(totalDay)}
+                </Badge>
+              )}
+            </div>
+
+            {/* Filtros */}
+            {timeEntries.length > 0 && (
+              <div className="flex flex-wrap gap-3 items-center">
+                {/* Busca */}
+                <div className="relative flex-1 min-w-[180px] max-w-[250px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar funcionário..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-9"
+                  />
+                </div>
+
+                {/* Filtro por turno */}
+                <Select value={shiftFilter} onValueChange={(v) => setShiftFilter(v as typeof shiftFilter)}>
+                  <SelectTrigger className="w-[130px] h-9">
+                    <SelectValue placeholder="Turno" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="lunch">
+                      <span className="flex items-center gap-1">
+                        <Sun className="h-3 w-3 text-amber-500" />
+                        Almoço
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="dinner">
+                      <span className="flex items-center gap-1">
+                        <Moon className="h-3 w-3 text-blue-500" />
+                        Jantar
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Filtro por status */}
+                <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+                  <SelectTrigger className="w-[150px] h-9">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos Status</SelectItem>
+                    <SelectItem value="complete">Ponto Completo</SelectItem>
+                    <SelectItem value="pending">Saída Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Limpar */}
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-9">
+                    <X className="h-4 w-4" />
+                    Limpar
+                  </Button>
+                )}
+
+                {/* Contador */}
+                {hasActiveFilters && (
+                  <span className="text-sm text-muted-foreground">
+                    {filteredEntries.length} de {timeEntries.length}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          {timeEntries.length === 0 ? (
+          {filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum registro de ponto para esta data
+              {timeEntries.length === 0 
+                ? "Nenhum registro de ponto para esta data" 
+                : "Nenhum registro encontrado com os filtros atuais"}
             </div>
           ) : (
             <Table className="table-fixed">
@@ -652,7 +759,7 @@ export default function PontoPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {timeEntries.map((entry) => {
+                {filteredEntries.map((entry) => {
                   const entryCanEdit = canEdit(userRole, entry.date);
                   
                   return (

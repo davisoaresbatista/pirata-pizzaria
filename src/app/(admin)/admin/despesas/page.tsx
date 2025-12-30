@@ -31,7 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Trash2, Loader2, Receipt, DollarSign, TrendingUp, TrendingDown, BarChart3, ShoppingCart, Zap, Home, Wrench, Calendar, CalendarDays, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Plus, Trash2, Loader2, Receipt, DollarSign, TrendingUp, TrendingDown, BarChart3, ShoppingCart, Zap, Home, Wrench, Calendar, CalendarDays, ArrowUpRight, ArrowDownRight, Search, X, Filter } from "lucide-react";
 
 interface Expense {
   id: string;
@@ -62,6 +62,12 @@ export default function DespesasPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
+  // Estados de filtros
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [minValue, setMinValue] = useState("");
+  const [maxValue, setMaxValue] = useState("");
+
   const [formData, setFormData] = useState({
     category: "",
     description: "",
@@ -133,6 +139,34 @@ export default function DespesasPage() {
       console.error("Erro ao excluir despesa:", error);
     }
   };
+
+  // Lógica de filtros
+  const filteredExpenses = expenses.filter((expense) => {
+    // Filtro por busca
+    const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      expense.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filtro por categoria
+    const matchesCategory = categoryFilter === "all" || expense.category === categoryFilter;
+
+    // Filtro por valor mínimo
+    const matchesMinValue = !minValue || Number(expense.amount) >= parseFloat(minValue);
+
+    // Filtro por valor máximo
+    const matchesMaxValue = !maxValue || Number(expense.amount) <= parseFloat(maxValue);
+
+    return matchesSearch && matchesCategory && matchesMinValue && matchesMaxValue;
+  });
+
+  // Limpar filtros
+  const clearFilters = () => {
+    setSearchTerm("");
+    setCategoryFilter("all");
+    setMinValue("");
+    setMaxValue("");
+  };
+
+  const hasActiveFilters = searchTerm || categoryFilter !== "all" || minValue || maxValue;
 
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
   const getCategoryLabel = (value: string) =>
@@ -526,16 +560,85 @@ export default function DespesasPage() {
       {/* Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Despesas</CardTitle>
+          <div className="flex flex-col gap-4">
+            <CardTitle>Lista de Despesas</CardTitle>
+
+            {/* Filtros */}
+            {expenses.length > 0 && (
+              <div className="flex flex-wrap gap-3 items-center">
+                {/* Busca */}
+                <div className="relative flex-1 min-w-[180px] max-w-[250px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar descrição..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-9"
+                  />
+                </div>
+
+                {/* Categoria */}
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-[150px] h-9">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Faixa de valor */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Mín"
+                    value={minValue}
+                    onChange={(e) => setMinValue(e.target.value)}
+                    className="w-[80px] h-9"
+                  />
+                  <span className="text-muted-foreground">-</span>
+                  <Input
+                    type="number"
+                    placeholder="Máx"
+                    value={maxValue}
+                    onChange={(e) => setMaxValue(e.target.value)}
+                    className="w-[80px] h-9"
+                  />
+                </div>
+
+                {/* Limpar */}
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 h-9">
+                    <X className="h-4 w-4" />
+                    Limpar
+                  </Button>
+                )}
+
+                {/* Contador */}
+                {hasActiveFilters && (
+                  <span className="text-sm text-muted-foreground">
+                    {filteredExpenses.length} de {expenses.length}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : expenses.length === 0 ? (
+          ) : filteredExpenses.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhuma despesa registrada neste mês
+              {expenses.length === 0 
+                ? "Nenhuma despesa registrada neste mês" 
+                : "Nenhuma despesa encontrada com os filtros atuais"}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -550,7 +653,7 @@ export default function DespesasPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {expenses.map((expense) => (
+                  {filteredExpenses.map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell>
                         {new Date(expense.date).toLocaleDateString("pt-BR")}
