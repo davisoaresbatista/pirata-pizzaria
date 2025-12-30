@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { HoneypotField, isHoneypotFilled } from "@/components/security/HoneypotField";
 import { Loader2, ArrowLeft, AlertTriangle, Clock } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -76,6 +76,113 @@ export default function LoginPage() {
   };
 
   return (
+    <Card className="border-0 shadow-xl">
+      <CardHeader>
+        <CardTitle>Entrar</CardTitle>
+        <CardDescription>
+          Acesse o painel administrativo da pizzaria
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Mensagem de erro */}
+          {error && (
+            <div className={`p-3 text-sm rounded-lg flex items-start gap-2 ${
+              isLocked 
+                ? "text-amber-700 bg-amber-50 border border-amber-200" 
+                : "text-destructive bg-destructive/10"
+            }`}>
+              {isLocked ? (
+                <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              )}
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Honeypot - invisível para usuários reais */}
+          <HoneypotField name="website" />
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              required
+              disabled={isLoading}
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              required
+              disabled={isLoading}
+              autoComplete="current-password"
+            />
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={isLoading || isLocked}
+          >
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {isLocked ? "Conta Bloqueada" : "Entrar"}
+          </Button>
+
+          {/* Dica de segurança */}
+          <p className="text-xs text-muted-foreground text-center">
+            Após 5 tentativas incorretas, sua conta será bloqueada por 15 minutos.
+          </p>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoginFormFallback() {
+  return (
+    <Card className="border-0 shadow-xl">
+      <CardHeader>
+        <CardTitle>Entrar</CardTitle>
+        <CardDescription>
+          Acesse o painel administrativo da pizzaria
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="h-4 w-12 bg-muted animate-pulse rounded" />
+            <div className="h-10 w-full bg-muted animate-pulse rounded" />
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 w-12 bg-muted animate-pulse rounded" />
+            <div className="h-10 w-full bg-muted animate-pulse rounded" />
+          </div>
+          <div className="h-10 w-full bg-muted animate-pulse rounded" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -92,82 +199,9 @@ export default function LoginPage() {
           <p className="text-muted-foreground">Pirata Pizzaria</p>
         </div>
 
-        <Card className="border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle>Entrar</CardTitle>
-            <CardDescription>
-              Acesse o painel administrativo da pizzaria
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Mensagem de erro */}
-              {error && (
-                <div className={`p-3 text-sm rounded-lg flex items-start gap-2 ${
-                  isLocked 
-                    ? "text-amber-700 bg-amber-50 border border-amber-200" 
-                    : "text-destructive bg-destructive/10"
-                }`}>
-                  {isLocked ? (
-                    <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  ) : (
-                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  )}
-                  <span>{error}</span>
-                </div>
-              )}
-
-              {/* Honeypot - invisível para usuários reais */}
-              <HoneypotField name="website" />
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                  disabled={isLoading}
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  required
-                  disabled={isLoading}
-                  autoComplete="current-password"
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading || isLocked}
-              >
-                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {isLocked ? "Conta Bloqueada" : "Entrar"}
-              </Button>
-
-              {/* Dica de segurança */}
-              <p className="text-xs text-muted-foreground text-center">
-                Após 5 tentativas incorretas, sua conta será bloqueada por 15 minutos.
-              </p>
-            </form>
-          </CardContent>
-        </Card>
+        <Suspense fallback={<LoginFormFallback />}>
+          <LoginForm />
+        </Suspense>
 
         <div className="text-center mt-6">
           <Link
