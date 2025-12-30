@@ -1,483 +1,343 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pizza, Utensils, Wine, IceCream, Cake, AlertCircle, Search, Flame } from "lucide-react";
+import { 
+  Utensils, Wine, AlertCircle, Search, Flame, Star, Leaf, Sparkles,
+  Fish, Drumstick, Beef, Soup, UtensilsCrossed, GlassWater, Salad
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-const pizzasSalgadas = [
-  { name: "A Moda", description: "Frango, champignon, palmito e requeijão", price: 69.99 },
-  { name: "Alho e Óleo", description: "Mussarela, alho frito e parmesão", price: 64.99 },
-  { name: "Aliche", description: "Aliche, mussarela e rodelas de tomate", price: 69.99 },
-  { name: "Atum", description: "Atum e cebola", price: 64.99 },
-  { name: "Bacon", description: "Mussarela e bacon", price: 64.99 },
-  { name: "Baiana", description: "Calabresa, cebola, pimenta e mussarela", price: 69.99, picante: true },
-  { name: "Bauru", description: "Presunto, mussarela e tomate", price: 64.99 },
-  { name: "Bertioga", description: "Ervilha, atum, palmito e mussarela", price: 69.99, destaque: true },
-  { name: "Brócolis", description: "Requeijão cremoso, brócolis e bacon", price: 69.99 },
-  { name: "Caiçara", description: "Frango desfiado, ervilha, palmito e mussarela", price: 69.99 },
-  { name: "Caipira", description: "Frango, milho, bacon e mussarela", price: 69.99 },
-  { name: "Calabresa", description: "Calabresa e cebola", price: 39.99, popular: true },
-  { name: "Calzone Aberto", description: "Presunto, mussarela, requeijão cremoso e parmesão", price: 69.99 },
-  { name: "Caribe", description: "Mussarela, bacon, palmito, alface americano e alho frito", price: 69.99 },
-  { name: "Champignon", description: "Champignon e mussarela", price: 64.99 },
-  { name: "Caruara", description: "Calabresa, bacon, milho e mussarela", price: 69.99 },
-  { name: "Di Mori", description: "Mussarela, requeijão, palmito, alho frito e rodelas de tomate", price: 69.99 },
-  { name: "Escarola", description: "Escarola e mussarela", price: 64.99 },
-  { name: "Frango", description: "Frango e requeijão cremoso", price: 69.99 },
-  { name: "Galeão", description: "Calabresa, palmito, milho e mussarela", price: 69.99 },
-  { name: "Lombinho", description: "Lombo canadense e requeijão cremoso", price: 69.99 },
-  { name: "Marguerita", description: "Mussarela, parmesão, manjericão e tomate", price: 64.99, popular: true },
-  { name: "Milanesa", description: "Calabresa e requeijão cremoso", price: 69.99 },
-  { name: "Peperone", description: "Peperone e mussarela", price: 69.99 },
-  { name: "Milho Verde", description: "Milho verde e mussarela", price: 64.99 },
-  { name: "Mussarela", description: "Mussarela", price: 54.99, popular: true },
-  { name: "Napolitana", description: "Mussarela, alho, parmesão e rodela de tomate", price: 64.99 },
-  { name: "Palmito", description: "Palmito e mussarela", price: 64.99 },
-  { name: "Palmito Especial", description: "Palmito, requeijão cremoso e tomate seco", price: 69.99 },
-  { name: "Pirata", description: "Frango, palmito, requeijão cremoso e tomate", price: 69.99, destaque: true },
-  { name: "Pizzaiolo", description: "Provolone, presunto, bacon e tomate", price: 69.99 },
-  { name: "Portuguesa", description: "Presunto, ovos, cebola, palmito, ervilha e mussarela", price: 69.99, popular: true },
-  { name: "Porto", description: "Lombo canadense, cebola e mussarela", price: 69.99 },
-  { name: "Praiana", description: "Mussarela, atum e cebola", price: 69.99 },
-  { name: "2 Queijos", description: "Requeijão cremoso e mussarela", price: 64.99 },
-  { name: "3 Queijos", description: "Requeijão cremoso, mussarela e parmesão", price: 69.99 },
-  { name: "4 Queijos", description: "Requeijão, mussarela, parmesão e provolone", price: 69.99, popular: true },
-  { name: "5 Queijos", description: "Requeijão, mussarela, parmesão, provolone e cheddar", price: 69.99 },
-  { name: "Rúcula", description: "Rúcula, mussarela e tomate seco", price: 69.99 },
-  { name: "Siciliana", description: "Champignon, bacon e mussarela", price: 69.99 },
-  { name: "Suprema", description: "Bacon, champignon, requeijão cremoso e tomate seco", price: 69.99 },
-  { name: "Tomate Seco", description: "Tomate seco, mussarela e parmesão", price: 69.99 },
-  { name: "Toscana", description: "Calabresa, mussarela e cebola", price: 69.99 },
-  { name: "Vegetariana", description: "Escarola, palmito, tomate, ervilha e cebola", price: 69.99 },
-];
-
-const pizzasDoces = [
-  { name: "Brigadeiro", description: "Chocolate ao leite e granulado", price: 69.99, popular: true },
-  { name: "Confete", description: "Chocolate ao leite e confete", price: 69.99 },
-  { name: "Chocobanana", description: "Chocolate ao leite e banana", price: 69.99 },
-  { name: "Prestígio", description: "Chocolate ao leite e coco ralado", price: 69.99 },
-  { name: "Sensação", description: "Chocolate ao leite e morango", price: 69.99, popular: true },
-  { name: "Romeu e Julieta", description: "Mussarela e goiabada", price: 69.99 },
-  { name: "Chita", description: "Banana, canela, leite condensado e cereja", price: 69.99 },
-];
-
-const pratosAlmoco = [
-  { name: "Filé à Parmegiana", description: "Filé empanado coberto com molho e queijo, arroz, fritas e salada", price: 38.00 },
-  { name: "Picanha Grelhada", description: "Picanha grelhada com arroz, feijão tropeiro e vinagrete", price: 45.00 },
-  { name: "Frango Grelhado", description: "Peito de frango grelhado com legumes, arroz e salada", price: 32.00 },
-  { name: "Prato Executivo", description: "Opção do dia com arroz, feijão, proteína e salada", price: 25.00 },
-  { name: "Lasanha Bolonhesa", description: "Lasanha artesanal com molho bolonhesa e queijo gratinado", price: 35.00 },
-];
-
-const bebidas = [
-  { name: "Refrigerante Lata", price: 6.00 },
-  { name: "Refrigerante 2L", price: 12.00 },
-  { name: "Suco Natural", price: 8.00 },
-  { name: "Água Mineral", price: 4.00 },
-  { name: "Cerveja Long Neck", price: 10.00 },
-  { name: "Vinho da Casa (Taça)", price: 18.00 },
-];
-
-const sobremesas = [
-  { name: "Petit Gateau", description: "Bolinho de chocolate com sorvete de creme", price: 22.00 },
-  { name: "Pudim", description: "Pudim de leite condensado tradicional", price: 12.00 },
-  { name: "Açaí 300ml", description: "Açaí com granola, banana e mel", price: 18.00 },
-];
-
-function formatPrice(price: number) {
-  return `R$ ${price.toFixed(2).replace('.', ',')}`;
+interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  active: boolean;
+  featured: boolean;
+  popular: boolean;
+  spicy: boolean;
+  vegetarian: boolean;
+  newItem: boolean;
+  imageUrl?: string;
 }
 
+interface MenuCategory {
+  id: string;
+  name: string;
+  displayName: string;
+  description?: string;
+  icon?: string;
+  items: MenuItem[];
+}
+
+// Mapa de ícones
+const iconMap: Record<string, React.ReactNode> = {
+  Salad: <Salad className="h-5 w-5" />,
+  Fish: <Fish className="h-5 w-5" />,
+  Beef: <Beef className="h-5 w-5" />,
+  Drumstick: <Drumstick className="h-5 w-5" />,
+  Soup: <Soup className="h-5 w-5" />,
+  UtensilsCrossed: <UtensilsCrossed className="h-5 w-5" />,
+  Utensils: <Utensils className="h-5 w-5" />,
+  Wine: <Wine className="h-5 w-5" />,
+  GlassWater: <GlassWater className="h-5 w-5" />,
+};
+
+const iconMapLarge: Record<string, React.ReactNode> = {
+  Salad: <Salad className="h-8 w-8" />,
+  Fish: <Fish className="h-8 w-8" />,
+  Beef: <Beef className="h-8 w-8" />,
+  Drumstick: <Drumstick className="h-8 w-8" />,
+  Soup: <Soup className="h-8 w-8" />,
+  UtensilsCrossed: <UtensilsCrossed className="h-8 w-8" />,
+  Utensils: <Utensils className="h-8 w-8" />,
+  Wine: <Wine className="h-8 w-8" />,
+  GlassWater: <GlassWater className="h-8 w-8" />,
+};
+
+function formatPrice(price: number) {
+  return `R$ ${Number(price).toFixed(2).replace('.', ',')}`;
+}
+
+// Cores por tipo de categoria
+const categoryColors: Record<string, { bg: string; text: string; accent: string }> = {
+  entradas: { bg: "bg-emerald-50", text: "text-emerald-700", accent: "bg-emerald-100" },
+  peixes_individual: { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-100" },
+  peixes_duplo: { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-100" },
+  carnes_individual: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
+  carnes_duplo: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
+  frango_individual: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
+  frango_duplo: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
+  massas: { bg: "bg-orange-50", text: "text-orange-700", accent: "bg-orange-100" },
+  porcoes: { bg: "bg-purple-50", text: "text-purple-700", accent: "bg-purple-100" },
+  risotos: { bg: "bg-yellow-50", text: "text-yellow-700", accent: "bg-yellow-100" },
+  bebidas_alcoolicas: { bg: "bg-rose-50", text: "text-rose-700", accent: "bg-rose-100" },
+  bebidas_nao_alcoolicas: { bg: "bg-cyan-50", text: "text-cyan-700", accent: "bg-cyan-100" },
+};
+
 export default function CardapioPage() {
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  
-  const filteredPizzasSalgadas = pizzasSalgadas.filter(pizza => 
-    pizza.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pizza.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  const filteredPizzasDoces = pizzasDoces.filter(pizza => 
-    pizza.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pizza.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [activeTab, setActiveTab] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchMenu() {
+      try {
+        const response = await fetch("/api/menu/public");
+        if (response.ok) {
+          const data = await response.json();
+          if (data.length > 0) {
+            setCategories(data);
+            setActiveTab(data[0]?.name || "");
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar cardápio:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMenu();
+  }, []);
+
+  // Filtrar itens baseado na busca
+  const filterItems = (items: MenuItem[]) => {
+    if (!searchTerm) return items;
+    return items.filter(item =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // Agrupar categorias para as tabs principais
+  const mainCategories = [
+    { 
+      id: "pratos", 
+      name: "Pratos Principais", 
+      icon: <Utensils className="h-5 w-5" />,
+      categories: categories.filter(c => 
+        c.name.includes("peixe") || c.name.includes("carne") || c.name.includes("frango")
+      )
+    },
+    { 
+      id: "entradas", 
+      name: "Entradas", 
+      icon: <Salad className="h-5 w-5" />,
+      categories: categories.filter(c => c.name === "entradas")
+    },
+    { 
+      id: "massas_risotos", 
+      name: "Massas & Risotos", 
+      icon: <Soup className="h-5 w-5" />,
+      categories: categories.filter(c => c.name === "massas" || c.name === "risotos")
+    },
+    { 
+      id: "porcoes", 
+      name: "Porções", 
+      icon: <UtensilsCrossed className="h-5 w-5" />,
+      categories: categories.filter(c => c.name === "porcoes")
+    },
+    { 
+      id: "bebidas", 
+      name: "Bebidas", 
+      icon: <Wine className="h-5 w-5" />,
+      categories: categories.filter(c => c.name.includes("bebidas"))
+    },
+  ].filter(group => group.categories.length > 0);
+
+  // Contagem total de itens
+  const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1920&q=80"
-            alt="Pizza artesanal"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-background" />
+      <section className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 py-20 overflow-hidden">
+        {/* Pattern de fundo */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }} />
         </div>
         
-        <div className="relative z-10 text-center text-white px-4">
-          <Badge className="bg-primary/90 text-white mb-4 text-sm px-4 py-1">
-            🍕 Cardápio Completo
-          </Badge>
-          <h1 className="text-5xl md:text-7xl font-bold mb-4 drop-shadow-lg">
-            Nossos Sabores
-          </h1>
-          <p className="text-xl md:text-2xl text-white/90 max-w-2xl mx-auto mb-8">
-            Mais de 50 sabores artesanais preparados com ingredientes selecionados
-          </p>
-          
-          {/* Search */}
-          <div className="max-w-md mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Buscar pizza por nome ou ingrediente..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-14 text-lg bg-white/95 text-foreground border-0 shadow-xl"
-            />
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center text-white">
+            <Badge className="bg-primary/90 text-white mb-4 text-sm px-4 py-1">
+              🍽️ Cardápio Completo
+            </Badge>
+            <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
+              Nosso Cardápio
+            </h1>
+            <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto mb-8">
+              {totalItems} opções deliciosas preparadas com ingredientes frescos e selecionados
+            </p>
+            
+            {/* Search */}
+            <div className="max-w-md mx-auto relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Buscar por nome ou ingrediente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-12 h-14 text-lg bg-white/95 text-foreground border-0 shadow-xl"
+              />
+            </div>
           </div>
         </div>
       </section>
 
       {/* Aviso Preços */}
       <section className="container mx-auto px-4 -mt-8 relative z-20">
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-6 shadow-xl flex items-center gap-4 max-w-3xl mx-auto">
-          <div className="bg-white/20 rounded-full p-3">
-            <AlertCircle className="h-8 w-8 text-white" />
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 shadow-xl flex items-center gap-4 max-w-3xl mx-auto">
+          <div className="bg-white/20 rounded-full p-3 shrink-0">
+            <AlertCircle className="h-6 w-6 text-white" />
           </div>
           <div className="text-white">
-            <p className="font-bold text-lg">Preços exclusivos para o salão</p>
-            <p className="text-white/90">Os valores abaixo são praticados somente para consumo no estabelecimento.</p>
+            <p className="font-bold">Preços exclusivos para o salão</p>
+            <p className="text-white/90 text-sm">Os valores abaixo são praticados somente para consumo no estabelecimento.</p>
           </div>
         </div>
       </section>
 
-      {/* Menu Tabs */}
-      <section className="container mx-auto px-4 py-16">
-        <Tabs defaultValue="pizzas" className="w-full">
-          <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-4 mb-12 h-16 p-2 bg-secondary/50">
-            <TabsTrigger value="pizzas" className="gap-2 h-12 text-base data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Pizza className="h-5 w-5" />
-              <span className="hidden sm:inline">Pizzas</span>
-            </TabsTrigger>
-            <TabsTrigger value="almoco" className="gap-2 h-12 text-base data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Utensils className="h-5 w-5" />
-              <span className="hidden sm:inline">Almoço</span>
-            </TabsTrigger>
-            <TabsTrigger value="bebidas" className="gap-2 h-12 text-base data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Wine className="h-5 w-5" />
-              <span className="hidden sm:inline">Bebidas</span>
-            </TabsTrigger>
-            <TabsTrigger value="sobremesas" className="gap-2 h-12 text-base data-[state=active]:bg-primary data-[state=active]:text-white">
-              <IceCream className="h-5 w-5" />
-              <span className="hidden sm:inline">Sobremesas</span>
-            </TabsTrigger>
-          </TabsList>
+      {/* Menu */}
+      <section className="container mx-auto px-4 py-12">
+        {mainCategories.length > 0 ? (
+          <Tabs defaultValue={mainCategories[0]?.id} className="w-full">
+            {/* Tabs de navegação principal */}
+            <TabsList className="flex flex-wrap justify-center gap-2 mb-10 bg-transparent h-auto p-0">
+              {mainCategories.map(group => (
+                <TabsTrigger 
+                  key={group.id}
+                  value={group.id} 
+                  className="gap-2 px-6 py-3 rounded-full data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-lg transition-all bg-white shadow border"
+                >
+                  {group.icon}
+                  <span>{group.name}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-          {/* Pizzas */}
-          <TabsContent value="pizzas" className="space-y-16">
-            {/* Gallery */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="relative h-48 rounded-2xl overflow-hidden group">
-                <Image
-                  src="https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&q=80"
-                  alt="Pizza Marguerita"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <span className="absolute bottom-4 left-4 text-white font-bold">Marguerita</span>
-              </div>
-              <div className="relative h-48 rounded-2xl overflow-hidden group">
-                <Image
-                  src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80"
-                  alt="Pizza 4 Queijos"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <span className="absolute bottom-4 left-4 text-white font-bold">4 Queijos</span>
-              </div>
-              <div className="relative h-48 rounded-2xl overflow-hidden group">
-                <Image
-                  src="https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&q=80"
-                  alt="Pizza Calabresa"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <span className="absolute bottom-4 left-4 text-white font-bold">Calabresa</span>
-              </div>
-              <div className="relative h-48 rounded-2xl overflow-hidden group">
-                <Image
-                  src="https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=400&q=80"
-                  alt="Pizza Portuguesa"
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <span className="absolute bottom-4 left-4 text-white font-bold">Portuguesa</span>
-              </div>
-            </div>
-
-            {/* Pizzas Salgadas */}
-            <div>
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 rounded-full p-3">
-                    <Pizza className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold">Pizzas Salgadas</h2>
-                    <p className="text-muted-foreground">{filteredPizzasSalgadas.length} sabores disponíveis</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredPizzasSalgadas.map((pizza) => (
-                  <Card 
-                    key={pizza.name} 
-                    className={`group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden ${
-                      pizza.destaque ? 'ring-2 ring-primary bg-primary/5' : ''
-                    }`}
-                  >
-                    <CardContent className="p-0">
-                      <div className="p-5">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-lg">{pizza.name}</h3>
-                            {pizza.destaque && (
-                              <Badge className="bg-primary text-white">⭐ Destaque</Badge>
-                            )}
-                            {pizza.popular && (
-                              <Badge variant="secondary" className="bg-orange-100 text-orange-700">🔥 Popular</Badge>
-                            )}
-                            {pizza.picante && (
-                              <Badge variant="secondary" className="bg-red-100 text-red-700">
-                                <Flame className="h-3 w-3 mr-1" /> Picante
-                              </Badge>
-                            )}
+            {/* Conteúdo de cada tab */}
+            {mainCategories.map(group => (
+              <TabsContent key={group.id} value={group.id} className="space-y-12">
+                {group.categories.map(category => {
+                  const filteredItems = filterItems(category.items);
+                  const colors = categoryColors[category.name] || { bg: "bg-slate-50", text: "text-slate-700", accent: "bg-slate-100" };
+                  
+                  if (filteredItems.length === 0 && searchTerm) return null;
+                  
+                  return (
+                    <div key={category.id} className="scroll-mt-20" id={category.name}>
+                      {/* Cabeçalho da categoria */}
+                      <div className={`rounded-2xl ${colors.bg} p-6 mb-6`}>
+                        <div className="flex items-center gap-4">
+                          <div className={`rounded-xl ${colors.accent} p-3 ${colors.text}`}>
+                            {iconMapLarge[category.icon || "Utensils"] || <Utensils className="h-8 w-8" />}
+                          </div>
+                          <div>
+                            <h2 className={`text-2xl font-bold ${colors.text}`}>{category.displayName}</h2>
+                            <p className="text-muted-foreground">{category.description}</p>
+                            <p className="text-sm text-muted-foreground mt-1">{filteredItems.length} itens</p>
                           </div>
                         </div>
-                        <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{pizza.description}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-2xl font-bold text-primary">
-                            {formatPrice(pizza.price)}
-                          </span>
+                      </div>
+
+                      {/* Grid de itens */}
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredItems.map((item) => (
+                          <Card 
+                            key={item.id} 
+                            className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border-0 shadow-md bg-white"
+                          >
+                            <CardContent className="p-5">
+                              {/* Tags */}
+                              <div className="flex flex-wrap gap-1.5 mb-3 min-h-[28px]">
+                                {item.featured && (
+                                  <Badge className="bg-primary text-white text-xs">
+                                    <Star className="h-3 w-3 mr-1" /> Destaque
+                                  </Badge>
+                                )}
+                                {item.popular && (
+                                  <Badge variant="secondary" className="bg-orange-100 text-orange-700 text-xs">
+                                    <Flame className="h-3 w-3 mr-1" /> Popular
+                                  </Badge>
+                                )}
+                                {item.spicy && (
+                                  <Badge variant="secondary" className="bg-red-100 text-red-700 text-xs">
+                                    🌶️ Picante
+                                  </Badge>
+                                )}
+                                {item.vegetarian && (
+                                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                                    <Leaf className="h-3 w-3 mr-1" /> Vegetariano
+                                  </Badge>
+                                )}
+                                {item.newItem && (
+                                  <Badge variant="secondary" className="bg-purple-100 text-purple-700 text-xs">
+                                    <Sparkles className="h-3 w-3 mr-1" /> Novo
+                                  </Badge>
+                                )}
+                              </div>
+
+                              {/* Nome e descrição */}
+                              <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors">
+                                {item.name}
+                              </h3>
+                              <p className="text-muted-foreground text-sm mb-4 line-clamp-2 min-h-[40px]">
+                                {item.description || "—"}
+                              </p>
+
+                              {/* Preço */}
+                              <div className="flex items-center justify-between pt-3 border-t">
+                                <span className="text-2xl font-bold text-primary">
+                                  {formatPrice(item.price)}
+                                </span>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+
+                      {filteredItems.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Nenhum item encontrado com &quot;{searchTerm}&quot;
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            {/* Pizzas Doces */}
-            <div>
-              <div className="flex items-center gap-3 mb-8">
-                <div className="bg-pink-100 rounded-full p-3">
-                  <Cake className="h-8 w-8 text-pink-600" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold">Pizzas Doces</h2>
-                  <p className="text-muted-foreground">{filteredPizzasDoces.length} sabores deliciosos</p>
-                </div>
-              </div>
-
-              {/* Doces Gallery */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div className="relative h-48 rounded-2xl overflow-hidden group">
-                  <Image
-                    src="https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400&q=80"
-                    alt="Pizza de Chocolate"
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
-                  <span className="absolute bottom-4 left-4 text-white font-bold">Brigadeiro</span>
-                </div>
-                <div className="relative h-48 rounded-2xl overflow-hidden group">
-                  <Image
-                    src="https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80"
-                    alt="Pizza com Morango"
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
-                  <span className="absolute bottom-4 left-4 text-white font-bold">Sensação</span>
-                </div>
-                <div className="relative h-48 rounded-2xl overflow-hidden group">
-                  <Image
-                    src="https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=400&q=80"
-                    alt="Pizza de Banana"
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
-                  <span className="absolute bottom-4 left-4 text-white font-bold">Chocobanana</span>
-                </div>
-                <div className="relative h-48 rounded-2xl overflow-hidden group">
-                  <Image
-                    src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=80"
-                    alt="Pizza com Coco"
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-pink-900/80 to-transparent" />
-                  <span className="absolute bottom-4 left-4 text-white font-bold">Prestígio</span>
-                </div>
-              </div>
-              
-              {/* Banner Doces */}
-              <div className="relative h-32 rounded-2xl overflow-hidden mb-8 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500">
-                <div className="absolute inset-0 flex items-center justify-center text-white text-center p-4">
-                  <div>
-                    <h3 className="text-2xl md:text-3xl font-bold">🍫 Finalize com Doçura! 🍓</h3>
-                    <p className="text-white/90 text-sm md:text-base">Pizzas doces irresistíveis, perfeitas para compartilhar</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredPizzasDoces.map((pizza) => (
-                  <Card 
-                    key={pizza.name} 
-                    className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-pink-50 to-purple-50 border-pink-200/50"
-                  >
-                    <CardContent className="p-5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-bold text-lg">{pizza.name}</h3>
-                        {pizza.popular && (
-                          <Badge className="bg-pink-500 text-white">❤️ Favorita</Badge>
-                        )}
-                      </div>
-                      <p className="text-muted-foreground text-sm mb-4">{pizza.description}</p>
-                      <span className="text-2xl font-bold text-pink-600">
-                        {formatPrice(pizza.price)}
-                      </span>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            <p className="text-center text-muted-foreground bg-secondary/30 rounded-full py-3 px-6 max-w-xl mx-auto">
-              🍕 Todas as pizzas são tamanho grande (8 fatias) • Preços válidos para consumo no salão
-            </p>
-          </TabsContent>
-
-          {/* Almoço */}
-          <TabsContent value="almoco" className="space-y-8">
-            <div className="relative h-64 rounded-3xl overflow-hidden mb-8">
-              <Image
-                src="https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=80"
-                alt="Pratos do Almoço"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-amber-600/80 to-orange-600/80" />
-              <div className="absolute inset-0 flex items-center p-8">
-                <div className="text-white">
-                  <Badge className="bg-white/20 text-white mb-4">Terça a Domingo • 11h às 15h</Badge>
-                  <h2 className="text-4xl font-bold mb-2">Pratos Executivos</h2>
-                  <p className="text-white/90 max-w-xl">Almoço caprichado com ingredientes frescos e sabor caseiro</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {pratosAlmoco.map((prato) => (
-                <Card key={prato.name} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <CardContent className="p-6 flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-xl mb-2">{prato.name}</h3>
-                      <p className="text-muted-foreground">{prato.description}</p>
+                      )}
                     </div>
-                    <span className="text-2xl font-bold text-primary ml-4 whitespace-nowrap">
-                      {formatPrice(prato.price)}
-                    </span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
-              <p className="text-amber-800">
-                <strong>⚠️ Atenção:</strong> Almoço não funciona às segundas-feiras.
-              </p>
-            </div>
-          </TabsContent>
+                  );
+                })}
+              </TabsContent>
+            ))}
+          </Tabs>
+        ) : (
+          <div className="text-center py-16">
+            <Utensils className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Cardápio em atualização</h2>
+            <p className="text-muted-foreground">Nosso cardápio está sendo preparado. Volte em breve!</p>
+          </div>
+        )}
+      </section>
 
-          {/* Bebidas */}
-          <TabsContent value="bebidas" className="space-y-8">
-            <div className="relative h-48 rounded-3xl overflow-hidden mb-8">
-              <Image
-                src="https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=1200&q=80"
-                alt="Bebidas"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/80 to-blue-600/80" />
-              <div className="absolute inset-0 flex items-center justify-center text-white">
-                <div className="text-center">
-                  <Wine className="h-12 w-12 mx-auto mb-4" />
-                  <h2 className="text-4xl font-bold">Bebidas</h2>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-              {bebidas.map((bebida) => (
-                <Card key={bebida.name} className="group hover:shadow-lg transition-all hover:-translate-y-1">
-                  <CardContent className="p-6 flex justify-between items-center">
-                    <span className="font-semibold text-lg">{bebida.name}</span>
-                    <span className="text-xl font-bold text-primary">{formatPrice(bebida.price)}</span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Sobremesas */}
-          <TabsContent value="sobremesas" className="space-y-8">
-            <div className="relative h-48 rounded-3xl overflow-hidden mb-8">
-              <Image
-                src="https://images.unsplash.com/photo-1551024506-0bccd828d307?w=1200&q=80"
-                alt="Sobremesas"
-                fill
-                className="object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/80 to-pink-600/80" />
-              <div className="absolute inset-0 flex items-center justify-center text-white">
-                <div className="text-center">
-                  <IceCream className="h-12 w-12 mx-auto mb-4" />
-                  <h2 className="text-4xl font-bold">Sobremesas</h2>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {sobremesas.map((sobremesa) => (
-                <Card key={sobremesa.name} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-50 to-pink-50">
-                  <CardContent className="p-6 text-center">
-                    <h3 className="font-bold text-xl mb-2">{sobremesa.name}</h3>
-                    <p className="text-muted-foreground mb-4">{sobremesa.description}</p>
-                    <span className="text-2xl font-bold text-purple-600">
-                      {formatPrice(sobremesa.price)}
-                    </span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+      {/* Rodapé do cardápio */}
+      <section className="container mx-auto px-4 pb-16">
+        <div className="text-center">
+          <p className="text-muted-foreground bg-slate-100 rounded-full py-3 px-6 inline-block">
+            🍽️ Todos os pratos são preparados na hora • Preços válidos para consumo no salão
+          </p>
+        </div>
       </section>
     </div>
   );
