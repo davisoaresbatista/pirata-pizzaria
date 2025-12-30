@@ -127,10 +127,10 @@ async function seedTimeEntries() {
       }
 
       // Calcular horários e valores
-      let clockInLunch: Date | null = null;
-      let clockOutLunch: Date | null = null;
-      let clockInDinner: Date | null = null;
-      let clockOutDinner: Date | null = null;
+      let clockInLunch: string | null = null;
+      let clockOutLunch: string | null = null;
+      let clockInDinner: string | null = null;
+      let clockOutDinner: string | null = null;
       let lunchValue = 0;
       let dinnerValue = 0;
 
@@ -146,11 +146,13 @@ async function seedTimeEntries() {
         const [startH, startM] = lunchStart.split(':').map(Number);
         const [endH, endM] = lunchEnd.split(':').map(Number);
         
-        clockInLunch = new Date(currentDate);
-        clockInLunch.setHours(startH, startM + startVariation, 0, 0);
+        const inDate = new Date(currentDate);
+        inDate.setHours(startH, startM + startVariation, 0, 0);
+        clockInLunch = `${String(inDate.getHours()).padStart(2, '0')}:${String(inDate.getMinutes()).padStart(2, '0')}`;
         
-        clockOutLunch = new Date(currentDate);
-        clockOutLunch.setHours(endH, endM + endVariation, 0, 0);
+        const outDate = new Date(currentDate);
+        outDate.setHours(endH, endM + endVariation, 0, 0);
+        clockOutLunch = `${String(outDate.getHours()).padStart(2, '0')}:${String(outDate.getMinutes()).padStart(2, '0')}`;
 
         // Calcular valor - usar valor padrão se não configurado
         const hours = calculateHours(lunchStart, lunchEnd);
@@ -174,15 +176,17 @@ async function seedTimeEntries() {
         const [startH, startM] = dinnerStart.split(':').map(Number);
         const [endH, endM] = dinnerEnd.split(':').map(Number);
         
-        clockInDinner = new Date(currentDate);
-        clockInDinner.setHours(startH, startM + startVariation, 0, 0);
+        const inDinnerDate = new Date(currentDate);
+        inDinnerDate.setHours(startH, startM + startVariation, 0, 0);
+        clockInDinner = `${String(inDinnerDate.getHours()).padStart(2, '0')}:${String(inDinnerDate.getMinutes()).padStart(2, '0')}`;
         
         // Se termina à meia-noite ou depois, é no dia seguinte
-        clockOutDinner = new Date(currentDate);
+        const outDinnerDate = new Date(currentDate);
         if (endH === 0 || (endH < startH && endH < 6)) {
-          clockOutDinner.setDate(clockOutDinner.getDate() + 1);
+          outDinnerDate.setDate(outDinnerDate.getDate() + 1);
         }
-        clockOutDinner.setHours(endH, endM + endVariation, 0, 0);
+        outDinnerDate.setHours(endH, endM + endVariation, 0, 0);
+        clockOutDinner = `${String(outDinnerDate.getHours()).padStart(2, '0')}:${String(outDinnerDate.getMinutes()).padStart(2, '0')}`;
 
         // Calcular valor (considera fim de semana) - usar valores padrão se não configurado
         const hours = calculateHours(dinnerStart, dinnerEnd);
