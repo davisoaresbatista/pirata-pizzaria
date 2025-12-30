@@ -34,7 +34,12 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Otimização de imagens
   images: {
-    remotePatterns: [],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
     unoptimized: false,
   },
   // Para deploy na Hostinger
