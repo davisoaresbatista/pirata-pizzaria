@@ -38,53 +38,81 @@ async function main() {
 
   // Funcionários com suas configurações
   const employees = [
-    { name: "Andressa", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Bianca", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Caio", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Catia", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Cleber", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Cleia", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Duda", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Duda Loira", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Felipe", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Gil", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Henry", paymentType: "FIXED", worksLunch: true, worksDinner: false, salary: 3000 },
-    { name: "Isaias", paymentType: "HOURLY", worksLunch: true, worksDinner: true },
-    { name: "Kaio", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Lais", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Lara", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Ligia", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Marina", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Miguel", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Miqueias Moto", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Mudinho", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Nayara", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Rebeca", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Silva", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Stephanie", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Valdeir Moto", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Vinicius", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
-    { name: "Vitoria", paymentType: "HOURLY", worksLunch: false, worksDinner: true },
+    { name: "Andressa", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Bianca", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Caio", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Catia", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Cleber", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Cleia", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Duda", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Duda Loira", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Felipe", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Gil", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Henry", worksLunch: true, worksDinner: false, lunchPaymentType: "MONTH", lunchValue: 3000, salary: 3000 },
+    { name: "Isaias", worksLunch: true, worksDinner: true, lunchPaymentType: "HOUR", lunchValue: 15, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Kaio", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Lais", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Lara", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Ligia", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Marina", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Miguel", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Miqueias Moto", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Mudinho", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Nayara", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Rebeca", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Silva", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Stephanie", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Valdeir Moto", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Vinicius", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
+    { name: "Vitoria", worksLunch: false, worksDinner: true, dinnerPaymentType: "HOUR", dinnerWeekdayValue: 15, dinnerWeekendValue: 20 },
   ];
 
-  for (const emp of employees) {
+  type EmployeeData = {
+    name: string;
+    worksLunch: boolean;
+    worksDinner: boolean;
+    lunchPaymentType?: string;
+    lunchValue?: number;
+    dinnerPaymentType?: string;
+    dinnerWeekdayValue?: number;
+    dinnerWeekendValue?: number;
+    salary?: number;
+  };
+
+  for (const emp of employees as EmployeeData[]) {
     const id = emp.name.toLowerCase().replace(/\s+/g, '-');
     await prisma.employee.upsert({
       where: { id },
       update: {
-        paymentType: emp.paymentType,
         worksLunch: emp.worksLunch,
         worksDinner: emp.worksDinner,
-        salary: (emp as { salary?: number }).salary || 0,
+        lunchPaymentType: emp.lunchPaymentType || "SHIFT",
+        lunchValue: emp.lunchValue || 0,
+        dinnerPaymentType: emp.dinnerPaymentType || "SHIFT",
+        dinnerWeekdayValue: emp.dinnerWeekdayValue || 0,
+        dinnerWeekendValue: emp.dinnerWeekendValue || 0,
+        salary: emp.salary || 0,
+        lunchStartTime: emp.worksLunch ? "11:00" : null,
+        lunchEndTime: emp.worksLunch ? "17:00" : null,
+        dinnerStartTime: emp.worksDinner ? "17:00" : null,
+        dinnerEndTime: emp.worksDinner ? "00:00" : null,
       },
       create: {
         id,
         name: emp.name,
         role: 'Funcionário',
-        salary: (emp as { salary?: number }).salary || 0,
-        paymentType: emp.paymentType,
+        salary: emp.salary || 0,
         worksLunch: emp.worksLunch,
         worksDinner: emp.worksDinner,
+        lunchPaymentType: emp.lunchPaymentType || "SHIFT",
+        lunchValue: emp.lunchValue || 0,
+        dinnerPaymentType: emp.dinnerPaymentType || "SHIFT",
+        dinnerWeekdayValue: emp.dinnerWeekdayValue || 0,
+        dinnerWeekendValue: emp.dinnerWeekendValue || 0,
+        lunchStartTime: emp.worksLunch ? "11:00" : null,
+        lunchEndTime: emp.worksLunch ? "17:00" : null,
+        dinnerStartTime: emp.worksDinner ? "17:00" : null,
+        dinnerEndTime: emp.worksDinner ? "00:00" : null,
       },
     });
   }
