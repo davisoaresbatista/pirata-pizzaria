@@ -709,10 +709,14 @@ export default function FuncionariosPage() {
                     <TableCell>
                       <div className="flex justify-center gap-2">
                         {employee.worksLunch && (
-                          <Sun className="h-4 w-4 text-amber-500" title="Almoço" />
+                          <span title="Almoço">
+                            <Sun className="h-4 w-4 text-amber-500" />
+                          </span>
                         )}
                         {employee.worksDinner && (
-                          <Moon className="h-4 w-4 text-blue-500" title="Jantar" />
+                          <span title="Jantar">
+                            <Moon className="h-4 w-4 text-blue-500" />
+                          </span>
                         )}
                         {!employee.worksLunch && !employee.worksDinner && (
                           <span className="text-muted-foreground">-</span>
