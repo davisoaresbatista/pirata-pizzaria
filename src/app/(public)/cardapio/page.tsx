@@ -1,22 +1,63 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Pizza, Utensils, Wine, IceCream } from "lucide-react";
+import { Pizza, Utensils, Wine, IceCream, Cake, AlertCircle } from "lucide-react";
 
-const pizzasTradiconais = [
-  { name: "Margherita", description: "Molho de tomate, mussarela, manjericão fresco e azeite", price: "R$ 45,00" },
-  { name: "Calabresa", description: "Molho de tomate, mussarela, calabresa fatiada e cebola", price: "R$ 48,00" },
-  { name: "Portuguesa", description: "Molho de tomate, mussarela, presunto, ovos, cebola, azeitonas e ervilha", price: "R$ 52,00" },
-  { name: "Quatro Queijos", description: "Molho de tomate, mussarela, provolone, gorgonzola e parmesão", price: "R$ 55,00" },
-  { name: "Frango com Catupiry", description: "Molho de tomate, mussarela, frango desfiado e catupiry", price: "R$ 52,00" },
-  { name: "Pepperoni", description: "Molho de tomate, mussarela e pepperoni artesanal", price: "R$ 56,00" },
+const pizzasSalgadas = [
+  { name: "A Moda", description: "Frango, champignon, palmito e requeijão", price: "R$ 69,99" },
+  { name: "Alho e Óleo", description: "Mussarela, alho frito e parmesão", price: "R$ 64,99" },
+  { name: "Aliche", description: "Aliche, mussarela e rodelas de tomate", price: "R$ 69,99" },
+  { name: "Atum", description: "Atum e cebola", price: "R$ 64,99" },
+  { name: "Bacon", description: "Mussarela e bacon", price: "R$ 64,99" },
+  { name: "Baiana", description: "Calabresa, cebola, pimenta e mussarela", price: "R$ 69,99" },
+  { name: "Bauru", description: "Presunto, mussarela e tomate", price: "R$ 64,99" },
+  { name: "Bertioga", description: "Ervilha, atum, palmito e mussarela", price: "R$ 69,99", destaque: true },
+  { name: "Brócolis", description: "Requeijão cremoso, brócolis e bacon", price: "R$ 69,99" },
+  { name: "Caiçara", description: "Frango desfiado, ervilha, palmito e mussarela", price: "R$ 69,99" },
+  { name: "Caipira", description: "Frango, milho, bacon e mussarela", price: "R$ 69,99" },
+  { name: "Calabresa", description: "Calabresa e cebola", price: "R$ 39,99" },
+  { name: "Calzone Aberto", description: "Presunto, mussarela, requeijão cremoso e parmesão", price: "R$ 69,99" },
+  { name: "Caribe", description: "Mussarela, bacon, palmito, alface americano e alho frito", price: "R$ 69,99" },
+  { name: "Champignon", description: "Champignon e mussarela", price: "R$ 64,99" },
+  { name: "Caruara", description: "Calabresa, bacon, milho e mussarela", price: "R$ 69,99" },
+  { name: "Di Mori", description: "Mussarela, requeijão, palmito, alho frito e rodelas de tomate", price: "R$ 69,99" },
+  { name: "Escarola", description: "Escarola e mussarela", price: "R$ 64,99" },
+  { name: "Frango", description: "Frango e requeijão cremoso", price: "R$ 69,99" },
+  { name: "Galeão", description: "Calabresa, palmito, milho e mussarela", price: "R$ 69,99" },
+  { name: "Lombinho", description: "Lombo canadense e requeijão cremoso", price: "R$ 69,99" },
+  { name: "Marguerita", description: "Mussarela, parmesão, manjericão e tomate", price: "R$ 64,99" },
+  { name: "Milanesa", description: "Calabresa e requeijão cremoso", price: "R$ 69,99" },
+  { name: "Peperone", description: "Peperone e mussarela", price: "R$ 69,99" },
+  { name: "Milho Verde", description: "Milho verde e mussarela", price: "R$ 64,99" },
+  { name: "Mussarela", description: "Mussarela", price: "R$ 54,99" },
+  { name: "Napolitana", description: "Mussarela, alho, parmesão e rodela de tomate", price: "R$ 64,99" },
+  { name: "Palmito", description: "Palmito e mussarela", price: "R$ 64,99" },
+  { name: "Palmito Especial", description: "Palmito, requeijão cremoso e tomate seco", price: "R$ 69,99" },
+  { name: "Pirata", description: "Frango, palmito, requeijão cremoso e tomate", price: "R$ 69,99", destaque: true },
+  { name: "Pizzaiolo", description: "Provolone, presunto, bacon e tomate", price: "R$ 69,99" },
+  { name: "Portuguesa", description: "Presunto, ovos, cebola, palmito, ervilha e mussarela", price: "R$ 69,99" },
+  { name: "Porto", description: "Lombo canadense, cebola e mussarela", price: "R$ 69,99" },
+  { name: "Praiana", description: "Mussarela, atum e cebola", price: "R$ 69,99" },
+  { name: "2 Queijos", description: "Requeijão cremoso e mussarela", price: "R$ 64,99" },
+  { name: "3 Queijos", description: "Requeijão cremoso, mussarela e parmesão", price: "R$ 69,99" },
+  { name: "4 Queijos", description: "Requeijão, mussarela, parmesão e provolone", price: "R$ 69,99" },
+  { name: "5 Queijos", description: "Requeijão, mussarela, parmesão, provolone e cheddar", price: "R$ 69,99" },
+  { name: "Rúcula", description: "Rúcula, mussarela e tomate seco", price: "R$ 69,99" },
+  { name: "Siciliana", description: "Champignon, bacon e mussarela", price: "R$ 69,99" },
+  { name: "Suprema", description: "Bacon, champignon, requeijão cremoso e tomate seco", price: "R$ 69,99" },
+  { name: "Tomate Seco", description: "Tomate seco, mussarela e parmesão", price: "R$ 69,99" },
+  { name: "Toscana", description: "Calabresa, mussarela e cebola", price: "R$ 69,99" },
+  { name: "Vegetariana", description: "Escarola, palmito, tomate, ervilha e cebola", price: "R$ 69,99" },
 ];
 
-const pizzasEspeciais = [
-  { name: "Pirata Especial", description: "Molho de tomate, mussarela, camarão, lula, mexilhões e molho de alho", price: "R$ 75,00", destaque: true },
-  { name: "Tesouro do Mar", description: "Molho branco, mussarela, salmão defumado, cream cheese e alcaparras", price: "R$ 78,00" },
-  { name: "Capitão Jack", description: "Molho de tomate, mussarela, bacon, cogumelos e cebola caramelizada", price: "R$ 62,00" },
-  { name: "Ilha do Sabor", description: "Molho de tomate, mussarela de búfala, tomate seco e rúcula", price: "R$ 65,00" },
+const pizzasDoces = [
+  { name: "Brigadeiro", description: "Chocolate ao leite e granulado", price: "R$ 69,99" },
+  { name: "Confete", description: "Chocolate ao leite e confete", price: "R$ 69,99" },
+  { name: "Chocobanana", description: "Chocolate ao leite e banana", price: "R$ 69,99" },
+  { name: "Prestígio", description: "Chocolate ao leite e coco ralado", price: "R$ 69,99" },
+  { name: "Sensação", description: "Chocolate ao leite e morango", price: "R$ 69,99" },
+  { name: "Romeu e Julieta", description: "Mussarela e goiabada", price: "R$ 69,99" },
+  { name: "Chita", description: "Banana, canela, leite condensado e cereja", price: "R$ 69,99" },
 ];
 
 const pratosAlmoco = [
@@ -85,38 +126,24 @@ export default function CardapioPage() {
 
           {/* Pizzas */}
           <TabsContent value="pizzas" className="space-y-12">
-            {/* Tradicionais */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Pizza className="h-6 w-6 text-primary" />
-                Pizzas Tradicionais
-              </h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {pizzasTradiconais.map((pizza) => (
-                  <Card key={pizza.name} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4 flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{pizza.name}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">{pizza.description}</p>
-                      </div>
-                      <span className="font-semibold text-primary ml-4 whitespace-nowrap">
-                        {pizza.price}
-                      </span>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+            {/* Aviso Preços Salão */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3 max-w-2xl mx-auto">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                <strong>Atenção:</strong> Os preços abaixo são praticados exclusivamente para consumo no salão.
+                Para delivery, consulte nossos canais de atendimento.
+              </p>
             </div>
 
-            {/* Especiais */}
+            {/* Pizzas Salgadas */}
             <div>
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Pizza className="h-6 w-6 text-primary" />
-                Pizzas Especiais
-                <Badge variant="secondary">Premium</Badge>
+                Pizzas Salgadas
+                <Badge variant="secondary">{pizzasSalgadas.length} sabores</Badge>
               </h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {pizzasEspeciais.map((pizza) => (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pizzasSalgadas.map((pizza) => (
                   <Card 
                     key={pizza.name} 
                     className={`hover:shadow-md transition-shadow ${pizza.destaque ? 'border-primary/50 bg-primary/5' : ''}`}
@@ -140,8 +167,32 @@ export default function CardapioPage() {
               </div>
             </div>
 
+            {/* Pizzas Doces */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Cake className="h-6 w-6 text-primary" />
+                Pizzas Doces
+                <Badge variant="secondary">{pizzasDoces.length} sabores</Badge>
+              </h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pizzasDoces.map((pizza) => (
+                  <Card key={pizza.name} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4 flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{pizza.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{pizza.description}</p>
+                      </div>
+                      <span className="font-semibold text-primary ml-4 whitespace-nowrap">
+                        {pizza.price}
+                      </span>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
             <p className="text-center text-sm text-muted-foreground">
-              * Todas as pizzas são tamanho grande (8 fatias). Bordas recheadas: +R$ 8,00
+              * Todas as pizzas são tamanho grande (8 fatias). Preços válidos para consumo no salão.
             </p>
           </TabsContent>
 
@@ -150,7 +201,7 @@ export default function CardapioPage() {
             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
               <Utensils className="h-6 w-6 text-primary" />
               Pratos Executivos
-              <Badge variant="outline">Seg a Sex • 11h às 15h</Badge>
+              <Badge variant="outline">Ter a Dom • 11h às 15h</Badge>
             </h2>
             <div className="grid md:grid-cols-2 gap-4">
               {pratosAlmoco.map((prato) => (
@@ -167,6 +218,9 @@ export default function CardapioPage() {
                 </Card>
               ))}
             </div>
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              * Almoço não funciona às segundas-feiras.
+            </p>
           </TabsContent>
 
           {/* Bebidas */}
@@ -214,4 +268,3 @@ export default function CardapioPage() {
     </div>
   );
 }
-
