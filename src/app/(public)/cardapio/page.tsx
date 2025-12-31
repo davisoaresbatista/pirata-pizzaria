@@ -64,18 +64,10 @@ function formatPrice(price: number) {
 
 // Cores por tipo de categoria
 const categoryColors: Record<string, { bg: string; text: string; accent: string }> = {
-  entradas: { bg: "bg-emerald-50", text: "text-emerald-700", accent: "bg-emerald-100" },
-  peixes_individual: { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-100" },
-  peixes_duplo: { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-100" },
-  carnes_individual: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
-  carnes_duplo: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
-  frango_individual: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
-  frango_duplo: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
-  massas: { bg: "bg-orange-50", text: "text-orange-700", accent: "bg-orange-100" },
-  porcoes: { bg: "bg-purple-50", text: "text-purple-700", accent: "bg-purple-100" },
-  risotos: { bg: "bg-yellow-50", text: "text-yellow-700", accent: "bg-yellow-100" },
-  bebidas_alcoolicas: { bg: "bg-rose-50", text: "text-rose-700", accent: "bg-rose-100" },
-  bebidas_nao_alcoolicas: { bg: "bg-cyan-50", text: "text-cyan-700", accent: "bg-cyan-100" },
+  pizzas_salgadas: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
+  pizzas_doces: { bg: "bg-pink-50", text: "text-pink-700", accent: "bg-pink-100" },
+  bebidas: { bg: "bg-cyan-50", text: "text-cyan-700", accent: "bg-cyan-100" },
+  sobremesas: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
 };
 
 export default function CardapioPage() {
@@ -117,36 +109,28 @@ export default function CardapioPage() {
   // Agrupar categorias para as tabs principais
   const mainCategories = [
     { 
-      id: "pratos", 
-      name: "Pratos Principais", 
+      id: "pizzas_salgadas", 
+      name: "Pizzas Salgadas", 
       icon: <Utensils className="h-5 w-5" />,
-      categories: categories.filter(c => 
-        c.name.includes("peixe") || c.name.includes("carne") || c.name.includes("frango")
-      )
+      categories: categories.filter(c => c.name === "pizzas_salgadas")
     },
     { 
-      id: "entradas", 
-      name: "Entradas", 
-      icon: <Salad className="h-5 w-5" />,
-      categories: categories.filter(c => c.name === "entradas")
-    },
-    { 
-      id: "massas_risotos", 
-      name: "Massas & Risotos", 
-      icon: <Soup className="h-5 w-5" />,
-      categories: categories.filter(c => c.name === "massas" || c.name === "risotos")
-    },
-    { 
-      id: "porcoes", 
-      name: "Porções", 
-      icon: <UtensilsCrossed className="h-5 w-5" />,
-      categories: categories.filter(c => c.name === "porcoes")
+      id: "pizzas_doces", 
+      name: "Pizzas Doces", 
+      icon: <Utensils className="h-5 w-5" />,
+      categories: categories.filter(c => c.name === "pizzas_doces")
     },
     { 
       id: "bebidas", 
       name: "Bebidas", 
       icon: <Wine className="h-5 w-5" />,
-      categories: categories.filter(c => c.name.includes("bebidas"))
+      categories: categories.filter(c => c.name === "bebidas")
+    },
+    { 
+      id: "sobremesas", 
+      name: "Sobremesas", 
+      icon: <UtensilsCrossed className="h-5 w-5" />,
+      categories: categories.filter(c => c.name === "sobremesas")
     },
   ].filter(group => group.categories.length > 0);
 
