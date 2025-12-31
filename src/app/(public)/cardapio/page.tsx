@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Utensils, Wine, Search, Flame, Star, Leaf, Sparkles,
-  Fish, Drumstick, Beef, Soup, UtensilsCrossed, GlassWater, Salad
+  Fish, Drumstick, Beef, Soup, UtensilsCrossed, GlassWater, Salad,
+  Pizza, Cake, IceCream
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -33,7 +34,7 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
-// Mapa de ícones
+// Mapa de ícones (pequeno para tabs)
 const iconMap: Record<string, React.ReactNode> = {
   Salad: <Salad className="h-5 w-5" />,
   Fish: <Fish className="h-5 w-5" />,
@@ -44,8 +45,12 @@ const iconMap: Record<string, React.ReactNode> = {
   Utensils: <Utensils className="h-5 w-5" />,
   Wine: <Wine className="h-5 w-5" />,
   GlassWater: <GlassWater className="h-5 w-5" />,
+  Pizza: <Pizza className="h-5 w-5" />,
+  Cake: <Cake className="h-5 w-5" />,
+  IceCream: <IceCream className="h-5 w-5" />,
 };
 
+// Mapa de ícones (grande para cabeçalhos)
 const iconMapLarge: Record<string, React.ReactNode> = {
   Salad: <Salad className="h-8 w-8" />,
   Fish: <Fish className="h-8 w-8" />,
@@ -56,18 +61,35 @@ const iconMapLarge: Record<string, React.ReactNode> = {
   Utensils: <Utensils className="h-8 w-8" />,
   Wine: <Wine className="h-8 w-8" />,
   GlassWater: <GlassWater className="h-8 w-8" />,
+  Pizza: <Pizza className="h-8 w-8" />,
+  Cake: <Cake className="h-8 w-8" />,
+  IceCream: <IceCream className="h-8 w-8" />,
 };
 
 function formatPrice(price: number) {
   return `R$ ${Number(price).toFixed(2).replace('.', ',')}`;
 }
 
-// Cores por tipo de categoria
+// Cores por tipo de categoria (suporta ambos: pizzaria e restaurante)
 const categoryColors: Record<string, { bg: string; text: string; accent: string }> = {
+  // Categorias de Pizzaria (Produção)
   pizzas_salgadas: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
   pizzas_doces: { bg: "bg-pink-50", text: "text-pink-700", accent: "bg-pink-100" },
   bebidas: { bg: "bg-cyan-50", text: "text-cyan-700", accent: "bg-cyan-100" },
   sobremesas: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
+  // Categorias de Restaurante (Local)
+  entradas: { bg: "bg-green-50", text: "text-green-700", accent: "bg-green-100" },
+  peixes_individual: { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-100" },
+  peixes_duplo: { bg: "bg-blue-50", text: "text-blue-700", accent: "bg-blue-100" },
+  carnes_individual: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
+  carnes_duplo: { bg: "bg-red-50", text: "text-red-700", accent: "bg-red-100" },
+  frango_individual: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
+  frango_duplo: { bg: "bg-amber-50", text: "text-amber-700", accent: "bg-amber-100" },
+  massas: { bg: "bg-orange-50", text: "text-orange-700", accent: "bg-orange-100" },
+  porcoes: { bg: "bg-purple-50", text: "text-purple-700", accent: "bg-purple-100" },
+  risotos: { bg: "bg-yellow-50", text: "text-yellow-700", accent: "bg-yellow-100" },
+  bebidas_alcoolicas: { bg: "bg-rose-50", text: "text-rose-700", accent: "bg-rose-100" },
+  bebidas_nao_alcoolicas: { bg: "bg-cyan-50", text: "text-cyan-700", accent: "bg-cyan-100" },
 };
 
 export default function CardapioPage() {
@@ -106,33 +128,13 @@ export default function CardapioPage() {
     );
   };
 
-  // Agrupar categorias para as tabs principais
-  const mainCategories = [
-    { 
-      id: "pizzas_salgadas", 
-      name: "Pizzas Salgadas", 
-      icon: <Utensils className="h-5 w-5" />,
-      categories: categories.filter(c => c.name === "pizzas_salgadas")
-    },
-    { 
-      id: "pizzas_doces", 
-      name: "Pizzas Doces", 
-      icon: <Utensils className="h-5 w-5" />,
-      categories: categories.filter(c => c.name === "pizzas_doces")
-    },
-    { 
-      id: "bebidas", 
-      name: "Bebidas", 
-      icon: <Wine className="h-5 w-5" />,
-      categories: categories.filter(c => c.name === "bebidas")
-    },
-    { 
-      id: "sobremesas", 
-      name: "Sobremesas", 
-      icon: <UtensilsCrossed className="h-5 w-5" />,
-      categories: categories.filter(c => c.name === "sobremesas")
-    },
-  ].filter(group => group.categories.length > 0);
+  // Usar todas as categorias do banco diretamente (funciona para qualquer tipo de cardápio)
+  const mainCategories = categories.map(category => ({
+    id: category.name,
+    name: category.displayName,
+    icon: iconMap[category.icon || "Utensils"] || <Utensils className="h-5 w-5" />,
+    categories: [category]
+  }));
 
   // Contagem total de itens
   const totalItems = categories.reduce((acc, cat) => acc + cat.items.length, 0);

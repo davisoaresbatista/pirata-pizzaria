@@ -213,16 +213,42 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
   
-  // Cookies seguros
-  // NOTA: secure=false temporariamente até configurar HTTPS
+  // IMPORTANTE: Confiar nos headers do proxy (Nginx)
+  // Isso é necessário quando o Next.js está atrás de um reverse proxy
+  trustHost: true,
+  
+  // Cookies seguros para produção
   cookies: {
     sessionToken: {
-      name: "next-auth.session-token",
+      name: process.env.NODE_ENV === "production" 
+        ? "__Secure-next-auth.session-token" 
+        : "next-auth.session-token",
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: false, // TODO: mudar para true após configurar HTTPS
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Secure-next-auth.callback-url"
+        : "next-auth.callback-url",
+      options: {
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === "production"
+        ? "__Host-next-auth.csrf-token"
+        : "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
       },
     },
   },
