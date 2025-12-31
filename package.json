@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cp prisma/schema.mysql.prisma prisma/schema.prisma && prisma generate && next build",
+    "build": "node scripts/create-env.js && cp prisma/schema.mysql.prisma prisma/schema.prisma && prisma generate && next build",
     "start": "node server.js",
     "start:next": "next start",
     "lint": "eslint",
