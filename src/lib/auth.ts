@@ -213,9 +213,9 @@ export const authOptions: NextAuthOptions = {
   debug: process.env.NODE_ENV === "development",
   secret: process.env.NEXTAUTH_SECRET,
   
-  // IMPORTANTE: Confiar nos headers do proxy (Nginx)
-  // Isso é necessário quando o Next.js está atrás de um reverse proxy
-  trustHost: true,
+  // NOTA: Para NextAuth v4 com proxy reverso (Nginx), 
+  // a confiança no host é gerenciada via NEXTAUTH_URL no .env
+  // A propriedade "trustHost" só existe no NextAuth v5 (Auth.js)
   
   // Cookies seguros para produção
   cookies: {
