@@ -58,6 +58,20 @@ if (existsSync(standalonePath)) {
   process.env.HOSTNAME = process.env.HOSTNAME || '0.0.0.0';
   process.env.PORT = process.env.PORT || '3000';
   
+  // Verificar se os arquivos estáticos foram copiados
+  const staticPath = path.join(__dirname, '.next', 'standalone', '.next', 'static');
+  const publicPath = path.join(__dirname, '.next', 'standalone', 'public');
+  
+  if (!existsSync(staticPath)) {
+    console.warn('⚠️  AVISO: Pasta .next/standalone/.next/static não encontrada!');
+    console.warn('   O CSS e JS podem não funcionar. Execute: npm run build');
+  }
+  
+  if (!existsSync(publicPath)) {
+    console.warn('⚠️  AVISO: Pasta .next/standalone/public não encontrada!');
+    console.warn('   Imagens e arquivos públicos podem não funcionar.');
+  }
+  
   require(standalonePath);
 } else {
   // Modo tradicional - fallback para next start

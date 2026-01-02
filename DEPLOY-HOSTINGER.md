@@ -201,6 +201,37 @@ O NextAuth não está encontrando o `NEXTAUTH_SECRET`.
 - Confirme se o build foi executado corretamente
 - Verifique se o arquivo `.env` existe e está correto
 
+### ❌ Site mostra somente texto (sem CSS/estilos)
+
+Este é um problema comum com o modo `output: "standalone"` do Next.js.
+
+**Causa:** Os arquivos estáticos (CSS, JS) não foram copiados para a pasta do standalone.
+
+**Solução:**
+1. Execute o build completo novamente:
+```bash
+npm run build
+```
+
+2. Verifique se os arquivos estáticos foram copiados:
+```bash
+ls -la .next/standalone/.next/static
+ls -la .next/standalone/public
+```
+
+3. Se as pastas não existirem, copie manualmente:
+```bash
+# Copiar arquivos estáticos
+cp -r .next/static .next/standalone/.next/
+cp -r public .next/standalone/
+
+# Reiniciar a aplicação
+pm2 restart pirata
+# ou no hPanel, reinicie a aplicação Node.js
+```
+
+**Nota:** O script de build (`npm run build`) já inclui a cópia automática dos arquivos estáticos. Se você fez o build localmente, certifique-se de fazer upload de toda a pasta `.next/standalone` incluindo as subpastas `.next/static` e `public`.
+
 ### ❌ Erro de Autenticação
 - Verifique se o NEXTAUTH_URL está correto (com https://)
 - Confirme se o NEXTAUTH_SECRET está configurado no `.env`
