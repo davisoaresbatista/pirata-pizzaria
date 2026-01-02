@@ -15,17 +15,20 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 // Limites diferentes para dev e produção
 const RATE_LIMITS: Record<string, RateLimitConfig> = {
-  // Rotas de autenticação - SEMPRE restritivas para evitar força bruta
-  auth: { windowMs: 15 * 60 * 1000, maxRequests: 10 }, // 10 tentativas por 15 min (mantido)
+  // Rotas de autenticação
+  auth: { 
+    windowMs: 15 * 60 * 1000, 
+    maxRequests: isDevelopment ? 100 : 10 // 100 dev / 10 prod
+  },
   // APIs gerais
   api: { 
     windowMs: 60 * 1000, 
-    maxRequests: isDevelopment ? 300 : 100 // 300 dev / 100 prod
+    maxRequests: isDevelopment ? 1000 : 100 // 1000 dev / 100 prod
   },
   // APIs de escrita (POST/PUT/DELETE)
   apiWrite: { 
     windowMs: 60 * 1000, 
-    maxRequests: isDevelopment ? 100 : 30 // 100 dev / 30 prod
+    maxRequests: isDevelopment ? 500 : 30 // 500 dev / 30 prod
   },
 };
 

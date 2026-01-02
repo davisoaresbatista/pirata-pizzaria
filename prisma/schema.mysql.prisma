@@ -216,6 +216,203 @@ model Revenue {
 }
 
 // ============================================================================
+// VENDAS (Consumer Connect)
+// ============================================================================
+
+// Pedidos/Comandas do sistema Consumer Connect
+model SalesOrder {
+  id              String    @id @default(cuid())
+  externalId      String    @unique @db.VarChar(50)    // Cód do Consumer Connect
+  origin          String    @db.VarChar(100)           // Origem: "Comanda Mobile", etc.
+  orderType       String    @db.VarChar(100)           // Tipo: "Balcão", "Mesas/Comandas 3"
+  itemsCount      Int       @default(0)
+  amount          Decimal   @db.Decimal(10, 2)
+  status          String    @db.VarChar(50)            // "Finalizado Pago", etc.
+  paymentStatus   String    @default("PAID") @db.VarChar(20)  // PAID, PENDING, CANCELLED
+  openedAt        DateTime
+  closedAt        DateTime?
+  duration        Int?                                  // Duração em segundos
+  unit            String    @default("PIRATA PIZZARIA") @db.VarChar(100)
+  
+  // Detalhes de pagamento
+  paymentMethod   String?   @db.VarChar(50)
+  
+  // Metadados
+  tableNumber     Int?
+  isDelivery      Boolean   @default(false)
+  isCounter       Boolean   @default(false)
+  
+  // Auditoria
+  syncedAt        DateTime  @default(now())
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([openedAt])
+  @@index([status])
+  @@index([orderType])
+  @@index([paymentStatus])
+  @@map("sales_orders")
+}
+
+// Tabela para dados de calendário e eventos especiais
+model CalendarEvent {
+  id              String    @id @default(cuid())
+  name            String    @db.VarChar(100)           // Nome do evento
+  date            DateTime
+  eventType       String    @db.VarChar(50)            // HOLIDAY, SEASONAL, SPECIAL, LOCAL
+  scope           String    @default("NATIONAL") @db.VarChar(20) // NATIONAL, STATE, MUNICIPAL
+  description     String?   @db.VarChar(500)
+  impactExpected  String?   @db.VarChar(20)            // HIGH, MEDIUM, LOW
+  recurring       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([date, name])
+  @@index([date])
+  @@index([eventType])
+  @@index([scope])
+  @@map("calendar_events")
+}
+
+// Dados meteorológicos diários
+model WeatherData {
+  id              String    @id @default(cuid())
+  date            DateTime  @unique @db.Date
+  
+  tempMin         Float
+  tempMax         Float
+  tempAvg         Float
+  feelsLikeAvg    Float?
+  
+  precipitation   Float     @default(0)
+  humidity        Float?
+  
+  condition       String?   @db.VarChar(100)
+  conditionCode   Int?
+  
+  windSpeed       Float?
+  windDirection   String?   @db.VarChar(10)
+  
+  uvIndex         Float?
+  visibility      Float?
+  
+  source          String    @default("OPEN_METEO") @db.VarChar(50)
+  city            String    @default("Bertioga") @db.VarChar(100)
+  state           String    @default("SP") @db.VarChar(2)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@map("weather_data")
+}
+
+// Cache de features calculadas para ML
+model DailyFeatures {
+  id              String    @id @default(cuid())
+  date            DateTime  @unique @db.Date
+
+  totalOrders     Int       @default(0)
+  totalRevenue    Float     @default(0)
+  avgTicket       Float     @default(0)
+  totalItems      Int       @default(0)
+  
+  avgDuration     Int       @default(0)
+  
+  counterOrders   Int       @default(0)
+  tableOrders     Int       @default(0)
+  deliveryOrders  Int       @default(0)
+  
+  paidOrders      Int       @default(0)
+  pendingOrders   Int       @default(0)
+  
+  isWeekend       Boolean   @default(false)
+  isHoliday       Boolean   @default(false)
+  holidayName     String?   @db.VarChar(100)
+  holidayScope    String?   @db.VarChar(20)
+  dayOfWeek       Int
+  dayOfMonth      Int
+  month           Int
+  year            Int
+  
+  tempMin         Float?
+  tempMax         Float?
+  tempAvg         Float?
+  precipitation   Float?
+  condition       String?   @db.VarChar(100)
+  
+  nextDayOrders   Int?
+  nextDayRevenue  Float?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@index([isWeekend])
+  @@index([isHoliday])
+  @@map("daily_features")
+}
+
+// Previsões geradas pelo modelo
+model Prediction {
+  id              String    @id @default(cuid())
+  date            DateTime  @db.Date
+  modelVersion    String    @db.VarChar(50)
+  
+  predictedOrders     Float
+  predictedRevenue    Float
+  
+  ordersLower         Float?
+  ordersUpper         Float?
+  revenueLower        Float?
+  revenueUpper        Float?
+  
+  confidence          Float?
+  
+  actualOrders        Int?
+  actualRevenue       Float?
+  
+  features            String?   @db.Text
+  createdAt           DateTime  @default(now())
+
+  @@unique([date, modelVersion])
+  @@index([date])
+  @@map("predictions")
+}
+
+// Cache de métricas calculadas para performance
+model SalesMetrics {
+  id              String    @id @default(cuid())
+  date            DateTime
+  periodType      String    @db.VarChar(20)            // DAILY, WEEKLY, MONTHLY
+  
+  // Métricas de vendas
+  totalOrders     Int       @default(0)
+  totalAmount     Decimal   @default(0) @db.Decimal(10, 2)
+  avgOrderValue   Decimal   @default(0) @db.Decimal(10, 2)
+  totalItems      Int       @default(0)
+  
+  // Métricas por tipo
+  counterOrders   Int       @default(0)
+  tableOrders     Int       @default(0)
+  deliveryOrders  Int       @default(0)
+  
+  // Métricas de tempo
+  avgDuration     Int       @default(0)
+  
+  // Métricas de pagamento
+  paidOrders      Int       @default(0)
+  pendingOrders   Int       @default(0)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([date, periodType])
+  @@map("sales_metrics")
+}
+
+// ============================================================================
 // SEGURANÇA E AUDITORIA
 // ============================================================================
 
@@ -264,6 +461,7 @@ model MenuCategory {
   displayName   String    @db.VarChar(100)
   description   String?   @db.VarChar(500)
   icon          String?   @db.VarChar(50)
+  shift         String    @default("both") @db.VarChar(20)  // "lunch", "dinner", "both"
   order         Int       @default(0)
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())

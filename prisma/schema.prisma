@@ -216,6 +216,221 @@ model Revenue {
 }
 
 // ============================================================================
+// VENDAS (Consumer Connect)
+// ============================================================================
+
+// Pedidos/Comandas do sistema Consumer Connect
+model SalesOrder {
+  id              String    @id @default(cuid())
+  externalId      String    @unique           // Cód do Consumer Connect (185586, etc.)
+  origin          String                       // Origem: "Comanda Mobile", "PDV", etc.
+  orderType       String                       // Tipo: "Balcão", "Mesas/Comandas 3", etc.
+  itemsCount      Int       @default(0)        // Quantidade de itens
+  amount          Decimal                      // Valor Final
+  status          String                       // Status: "Finalizado Pago", "Finalizado Fiado", "Cancelado"
+  paymentStatus   String    @default("PAID")   // PAID, PENDING, CANCELLED
+  openedAt        DateTime                     // Data/hora de abertura
+  closedAt        DateTime?                    // Data/hora de fechamento
+  duration        Int?                         // Duração em segundos
+  unit            String    @default("PIRATA PIZZARIA")  // Unidade/loja
+  
+  // Detalhes de pagamento
+  paymentMethod   String?                      // PIX, CREDITO, DEBITO, DINHEIRO, etc.
+  
+  // Metadados
+  tableNumber     Int?                         // Número da mesa (extraído do tipo)
+  isDelivery      Boolean   @default(false)    // Se é delivery
+  isCounter       Boolean   @default(false)    // Se é balcão
+  
+  // Auditoria
+  syncedAt        DateTime  @default(now())    // Quando foi sincronizado
+  deletedAt       DateTime?                    // Soft delete
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([openedAt])
+  @@index([status])
+  @@index([orderType])
+  @@index([paymentStatus])
+  @@map("sales_orders")
+}
+
+// Tabela para dados de calendário e eventos especiais
+model CalendarEvent {
+  id              String    @id @default(cuid())
+  name            String                       // Nome do evento (Dia das Mães, Carnaval, etc.)
+  date            DateTime                     // Data do evento
+  eventType       String                       // HOLIDAY, SEASONAL, SPECIAL, LOCAL
+  scope           String    @default("NATIONAL") // NATIONAL, STATE, MUNICIPAL, COMMERCIAL
+  description     String?                      // Descrição adicional
+  impactExpected  String?                      // HIGH, MEDIUM, LOW - impacto esperado nas vendas
+  recurring       Boolean   @default(false)    // Se é recorrente anualmente
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([date, name])
+  @@index([date])
+  @@index([eventType])
+  @@index([scope])
+  @@map("calendar_events")
+}
+
+// Dados meteorológicos diários
+model WeatherData {
+  id              String    @id @default(cuid())
+  date            DateTime  @unique            // Data (apenas dia, sem hora)
+  
+  // Temperaturas em Celsius
+  tempMin         Float                        // Temperatura mínima
+  tempMax         Float                        // Temperatura máxima
+  tempAvg         Float                        // Temperatura média
+  feelsLikeAvg    Float?                       // Sensação térmica média
+  
+  // Precipitação
+  precipitation   Float     @default(0)        // Precipitação total (mm)
+  humidity        Float?                       // Umidade relativa média (%)
+  
+  // Condições
+  condition       String?                      // Ensolarado, Nublado, Chuvoso, etc.
+  conditionCode   Int?                         // Código da condição (API)
+  
+  // Vento
+  windSpeed       Float?                       // Velocidade do vento (km/h)
+  windDirection   String?                      // Direção do vento
+  
+  // UV e visibilidade
+  uvIndex         Float?                       // Índice UV
+  visibility      Float?                       // Visibilidade (km)
+  
+  // Metadados
+  source          String    @default("OPEN_METEO") // Fonte dos dados
+  city            String    @default("Bertioga")
+  state           String    @default("SP")
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@map("weather_data")
+}
+
+// Cache de features calculadas para ML
+model DailyFeatures {
+  id              String    @id @default(cuid())
+  date            DateTime  @unique            // Data
+
+  // Features de vendas
+  totalOrders     Int       @default(0)
+  totalRevenue    Float     @default(0)
+  avgTicket       Float     @default(0)
+  totalItems      Int       @default(0)
+  
+  // Features de tempo
+  avgDuration     Int       @default(0)        // Duração média em segundos
+  
+  // Features por tipo
+  counterOrders   Int       @default(0)
+  tableOrders     Int       @default(0)
+  deliveryOrders  Int       @default(0)
+  
+  // Features de pagamento
+  paidOrders      Int       @default(0)
+  pendingOrders   Int       @default(0)
+  
+  // Features de calendário
+  isWeekend       Boolean   @default(false)
+  isHoliday       Boolean   @default(false)
+  holidayName     String?
+  holidayScope    String?                      // NATIONAL, STATE, MUNICIPAL
+  dayOfWeek       Int                          // 0=Dom, 6=Sáb
+  dayOfMonth      Int
+  month           Int
+  year            Int
+  
+  // Features meteorológicas
+  tempMin         Float?
+  tempMax         Float?
+  tempAvg         Float?
+  precipitation   Float?
+  condition       String?
+  
+  // Target para ML (pode ser preenchido depois)
+  nextDayOrders   Int?                         // Pedidos do dia seguinte (para previsão)
+  nextDayRevenue  Float?                       // Receita do dia seguinte
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([date])
+  @@index([isWeekend])
+  @@index([isHoliday])
+  @@map("daily_features")
+}
+
+// Previsões geradas pelo modelo
+model Prediction {
+  id              String    @id @default(cuid())
+  date            DateTime                     // Data da previsão
+  modelVersion    String                       // Versão do modelo usado
+  
+  // Previsões
+  predictedOrders     Float                    // Pedidos previstos
+  predictedRevenue    Float                    // Receita prevista
+  
+  // Intervalos de confiança
+  ordersLower         Float?                   // Limite inferior (95%)
+  ordersUpper         Float?                   // Limite superior (95%)
+  revenueLower        Float?
+  revenueUpper        Float?
+  
+  // Métricas do modelo
+  confidence          Float?                   // Confiança da previsão (0-1)
+  
+  // Valores reais (preenchido depois para avaliar)
+  actualOrders        Int?
+  actualRevenue       Float?
+  
+  // Metadados
+  features            String?                  // JSON com features usadas
+  createdAt           DateTime  @default(now())
+
+  @@unique([date, modelVersion])
+  @@index([date])
+  @@map("predictions")
+}
+
+// Cache de métricas calculadas para performance
+model SalesMetrics {
+  id              String    @id @default(cuid())
+  date            DateTime                     // Data da métrica
+  periodType      String                       // DAILY, WEEKLY, MONTHLY
+  
+  // Métricas de vendas
+  totalOrders     Int       @default(0)
+  totalAmount     Decimal   @default(0)
+  avgOrderValue   Decimal   @default(0)
+  totalItems      Int       @default(0)
+  
+  // Métricas por tipo
+  counterOrders   Int       @default(0)
+  tableOrders     Int       @default(0)
+  deliveryOrders  Int       @default(0)
+  
+  // Métricas de tempo
+  avgDuration     Int       @default(0)        // Segundos
+  
+  // Métricas de pagamento
+  paidOrders      Int       @default(0)
+  pendingOrders   Int       @default(0)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([date, periodType])
+  @@map("sales_metrics")
+}
+
+// ============================================================================
 // SEGURANÇA E AUDITORIA
 // ============================================================================
 
@@ -264,6 +479,7 @@ model MenuCategory {
   displayName   String                          // Ex: "Pizzas Salgadas"
   description   String?
   icon          String?                         // Nome do ícone (ex: "Pizza", "Cake", "Utensils")
+  shift         String    @default("both")      // "lunch" (almoço), "dinner" (pizzaria), "both" (ambos)
   order         Int       @default(0)           // Ordem de exibição
   active        Boolean   @default(true)
   createdAt     DateTime  @default(now())

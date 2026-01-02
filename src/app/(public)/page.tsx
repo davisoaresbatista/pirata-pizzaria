@@ -11,8 +11,9 @@ const PIZZARIA_INFO = {
   cep: "11250-045",
   telefone: "(13) 99747-3947",
   whatsapp: "(13) 99747-3947",
-  instagram: "@piratapizzaria",
+  instagram: "pirata_pizzaria",
   googleMaps: "https://maps.app.goo.gl/CSJCJvA1AaHY6DrF7",
+  ifood: "https://www.ifood.com.br/delivery/bertioga-sp/pirata-pizzaria-bertioga-centro/95f172e2-1048-45be-a02f-5c78ada13507",
 };
 
 export default function HomePage() {
@@ -57,7 +58,7 @@ export default function HomePage() {
           {/* Main Heading */}
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-6 tracking-tight">
             <span className="block">Venha Descobrir</span>
-            <span className="block mt-2 bg-gradient-to-r from-red-500 via-red-400 to-orange-500 bg-clip-text text-transparent">
+            <span className="block mt-2 text-red-500">
               Nossos Tesouros
             </span>
           </h1>
@@ -374,7 +375,7 @@ export default function HomePage() {
 
               {/* Instagram */}
               <a 
-                href="https://instagram.com/piratapizzaria"
+                href={`https://instagram.com/${PIZZARIA_INFO.instagram}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center gap-5 p-6 rounded-2xl bg-pink-500/10 border border-pink-500/20 hover:border-pink-500/40 transition-all duration-300"
@@ -384,7 +385,25 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-lg text-white">Instagram</h4>
-                  <p className="text-pink-400">{PIZZARIA_INFO.instagram}</p>
+                  <p className="text-pink-400">@{PIZZARIA_INFO.instagram}</p>
+                </div>
+              </a>
+
+              {/* iFood */}
+              <a 
+                href={PIZZARIA_INFO.ifood}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-5 p-6 rounded-2xl bg-red-500/10 border border-red-500/20 hover:border-red-500/40 transition-all duration-300"
+              >
+                <div className="w-14 h-14 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0 group-hover:bg-red-500/30 transition-colors">
+                  <svg className="h-6 w-6 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-lg text-white">iFood</h4>
+                  <p className="text-red-400">Peça pelo App</p>
                 </div>
               </a>
             </div>

@@ -27,10 +27,15 @@ interface DashboardStats {
   paidAmount: number;
   advancesByEmployee: { name: string; total: number; count: number }[];
   
-  // Receitas
+  // Receitas (Vendas)
   monthlyRevenue: number;
   revenueChange: number;
   revenueBySource: Record<string, number>;
+  totalOrders: number;
+  avgTicket: number;
+  dailyAvgRevenue: number;
+  dailyAvgOrders: number;
+  projectedRevenue: number;
   
   // Despesas
   monthlyExpenses: number;
@@ -187,12 +192,12 @@ export function DashboardContent({ stats }: DashboardContentProps) {
         </div>
       )}
 
-      {/* KPIs Principais - Resultado */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* KPIs de Vendas */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="border-green-200 dark:border-green-900">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Receita do Mês
+              Faturamento
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
@@ -213,10 +218,84 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Pedidos
+            </CardTitle>
+            <Utensils className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {showValues ? stats.totalOrders.toLocaleString() : "••••"}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              ~{showValues ? Math.round(stats.dailyAvgOrders) : "••"}/dia
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Ticket Médio
+            </CardTitle>
+            <Receipt className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {formatCurrency(stats.avgTicket)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              por pedido
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-purple-200 bg-purple-50/50 dark:bg-purple-950/20">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Projeção Mensal
+            </CardTitle>
+            <Target className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-700">
+              {formatCurrency(stats.projectedRevenue)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              estimado para o mês
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className={stats.profit >= 0 ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : "border-red-300 bg-red-50/50 dark:bg-red-950/20"}>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Resultado
+            </CardTitle>
+            <Target className={`h-4 w-4 ${stats.profit >= 0 ? "text-green-600" : "text-red-600"}`} />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${stats.profit >= 0 ? "text-green-700" : "text-red-700"}`}>
+              {formatCurrency(stats.profit)}
+            </div>
+            <div className="flex items-center gap-1 mt-1">
+              <Percent className="h-3 w-3" />
+              <span className="text-xs text-muted-foreground">
+                Margem: {showValues ? `${stats.profitMargin.toFixed(1)}%` : "••%"}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* KPIs de Custos */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-red-200 dark:border-red-900">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Despesas do Mês
+              Despesas Operacionais
             </CardTitle>
             <Receipt className="h-4 w-4 text-red-500" />
           </CardHeader>
@@ -261,23 +340,20 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           </CardContent>
         </Card>
 
-        <Card className={stats.profit >= 0 ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : "border-red-300 bg-red-50/50 dark:bg-red-950/20"}>
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Resultado Líquido
+              Custo Total
             </CardTitle>
-            <Target className={`h-4 w-4 ${stats.profit >= 0 ? "text-green-600" : "text-red-600"}`} />
+            <PiggyBank className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${stats.profit >= 0 ? "text-green-700" : "text-red-700"}`}>
-              {formatCurrency(stats.profit)}
+            <div className="text-2xl font-bold">
+              {formatCurrency(stats.totalCosts)}
             </div>
-            <div className="flex items-center gap-1 mt-1">
-              <Percent className="h-3 w-3" />
-              <span className="text-xs text-muted-foreground">
-                Margem: {showValues ? `${stats.profitMargin.toFixed(1)}%` : "••%"}
-              </span>
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.monthlyRevenue > 0 ? `${((stats.totalCosts / stats.monthlyRevenue) * 100).toFixed(0)}% da receita` : "—"}
+            </p>
           </CardContent>
         </Card>
       </div>

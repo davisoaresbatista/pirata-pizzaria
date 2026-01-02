@@ -48,7 +48,8 @@ Sistema web completo para gestão de uma pizzaria, composto por:
 - ✅ Controle de adiantamentos
 - ✅ Fechamento de folha de pagamento
 - ✅ Registro de despesas
-- ✅ Registro de receitas/faturamento
+- ✅ Receitas/Vendas (integração Consumer Connect)
+- ✅ Inteligência de Mercado (insights e analytics)
 - ✅ Gestão de cardápio
 - ✅ Relatórios financeiros
 - ✅ Logs de auditoria e segurança
@@ -839,7 +840,9 @@ export const POST = withApiSecurity(handler, {
 | Advances | `/api/advances` | ✅ | CRUD adiantamentos |
 | Payroll | `/api/payroll` | ✅ | Folha de pagamento |
 | Expenses | `/api/expenses` | ✅ | CRUD despesas |
-| Revenues | `/api/revenues` | ✅ | CRUD receitas |
+| Revenues | `/api/revenues` | ✅ | CRUD receitas (legado) |
+| **Sales** | `/api/sales` | ✅ | **Vendas Consumer Connect** |
+| **Sales Stats** | `/api/sales/stats` | ✅ | **Estatísticas de vendas** |
 | Menu | `/api/menu/*` | Parcial | Cardápio (público/privado) |
 | Users | `/api/users` | ADMIN | CRUD usuários |
 | Security | `/api/security/*` | ADMIN | Logs de auditoria |
@@ -877,6 +880,41 @@ GET    /api/advances           # Lista com filtros
 POST   /api/advances           # Solicita adiantamento
 PUT    /api/advances/:id       # Atualiza status
 DELETE /api/advances/:id       # Remove
+```
+
+#### Vendas (Consumer Connect)
+
+```
+GET    /api/sales              # Lista vendas com filtros
+POST   /api/sales              # Sincroniza vendas (batch ou unitário)
+GET    /api/sales/stats        # Estatísticas agregadas
+```
+
+**Query params (GET /api/sales):**
+- `month` - Filtrar por mês (YYYY-MM)
+- `startDate` - Data inicial (YYYY-MM-DD)
+- `endDate` - Data final (YYYY-MM-DD)
+- `status` - Status de pagamento (PAID, PENDING, CANCELLED)
+- `orderType` - Tipo (COUNTER, TABLE, DELIVERY)
+- `limit` - Limite de registros
+
+**Query params (GET /api/sales/stats):**
+- `month` - Mês para estatísticas (YYYY-MM)
+- `compare` - Comparar com mês anterior (true/false)
+
+**Body (POST /api/sales):**
+```json
+{
+  "externalId": "185586",
+  "origin": "Comanda Mobile",
+  "orderType": "Mesas/Comandas 3",
+  "itemsCount": 2,
+  "amount": 93.30,
+  "status": "Finalizado Pago",
+  "openedAt": "2025-09-01T18:30:19",
+  "duration": "55m 34s",
+  "unit": "PIRATA PIZZARIA"
+}
 ```
 
 #### Cardápio (Público)

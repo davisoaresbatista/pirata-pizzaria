@@ -27,6 +27,7 @@ export async function GET() {
       displayName: category.displayName,
       description: category.description,
       icon: category.icon,
+      shift: category.shift,
       items: category.items.map((item) => ({
         id: item.id,
         name: item.name,

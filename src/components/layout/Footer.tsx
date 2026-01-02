@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Phone, Clock, Instagram, Facebook } from "lucide-react";
+import { MapPin, Phone, Clock, Instagram } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 // Dados da Pizzaria (Google Maps: https://maps.app.goo.gl/CSJCJvA1AaHY6DrF7)
@@ -11,8 +11,9 @@ const PIZZARIA_INFO = {
   cep: "11250-045",
   telefone: "(13) 99747-3947",
   whatsapp: "(13) 99747-3947",
-  instagram: "@piratapizzaria",
+  instagram: "pirata_pizzaria",
   googleMaps: "https://maps.app.goo.gl/CSJCJvA1AaHY6DrF7",
+  ifood: "https://www.ifood.com.br/delivery/bertioga-sp/pirata-pizzaria-bertioga-centro/95f172e2-1048-45be-a02f-5c78ada13507",
 };
 
 export function Footer() {
@@ -125,7 +126,7 @@ export function Footer() {
             </ul>
             <div className="flex gap-3 mt-4">
               <a
-                href="https://instagram.com/piratapizzaria"
+                href={`https://instagram.com/${PIZZARIA_INFO.instagram}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white/60 hover:text-pink-500 transition-colors"
@@ -134,11 +135,16 @@ export function Footer() {
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="#"
-                className="text-white/60 hover:text-blue-500 transition-colors"
-                aria-label="Facebook"
+                href={PIZZARIA_INFO.ifood}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/60 hover:text-red-500 transition-colors"
+                aria-label="iFood"
+                title="Peça pelo iFood"
               >
-                <Facebook className="h-5 w-5" />
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6zm-2-8c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+                </svg>
               </a>
             </div>
           </div>
