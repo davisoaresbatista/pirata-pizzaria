@@ -659,6 +659,7 @@ CREATE TABLE `menu_categories` (
   `displayName` varchar(100) NOT NULL,
   `description` varchar(500) DEFAULT NULL,
   `icon` varchar(50) DEFAULT NULL,
+  `shift` varchar(20) NOT NULL DEFAULT 'both',  -- 'lunch', 'dinner', 'both'
   `order` int NOT NULL DEFAULT '0',
   `active` tinyint(1) NOT NULL DEFAULT '1',
   `createdAt` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -667,6 +668,11 @@ CREATE TABLE `menu_categories` (
   UNIQUE KEY `menu_categories_name_key` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
+
+**Valores de `shift`:**
+- `lunch` - Apenas almoço (Restaurante)
+- `dinner` - Apenas jantar (Pizzaria)
+- `both` - Ambos os turnos
 
 ---
 
@@ -1142,23 +1148,34 @@ openssl rand -base64 32
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 10.2 Fluxo de Deploy
+### 10.2 Deploy Automatizado (Recomendado)
+
+O projeto inclui um **script de deploy automatizado** que executa todos os passos necessários:
+
+```bash
+# Na VPS - Deploy completo em um comando
+cd /var/www/pirata && bash scripts/deploy.sh
+```
+
+#### O que o script `deploy.sh` faz:
+
+1. ⏸️ Para a aplicação (`pm2 stop pirata`)
+2. 📥 Puxa alterações do GitHub (`git reset --hard origin/main`)
+3. 📦 Instala dependências (`npm install`)
+4. 🗄️ Sincroniza o banco (`prisma generate` + `prisma db push`)
+5. 🔨 Faz o build (`npm run build`)
+6. 🚀 Reinicia a aplicação (`pm2 start pirata`)
+
+### 10.3 Fluxo de Deploy Manual (Alternativo)
 
 ```
 1. Desenvolver e testar localmente
          ↓
 2. Push para GitHub (branch main)
          ↓
-3. SSH na VPS e pull das alterações
+3. SSH na VPS
          ↓
-4. npm install (instala dependências)
-         ↓
-5. npm run build (gera build standalone)
-   • Copia schema.mysql.prisma → schema.prisma
-   • Gera Prisma Client
-   • Build Next.js
-         ↓
-6. pm2 restart pirata (reinicia aplicação)
+4. cd /var/www/pirata && bash scripts/deploy.sh
 ```
 
 ### 10.3 Servidor Customizado
@@ -1325,6 +1342,15 @@ ssh root@IP_DA_VPS
 # Navegar para projeto
 cd /var/www/pirata
 
+# ============================================
+# 🚀 DEPLOY AUTOMATIZADO (RECOMENDADO)
+# ============================================
+bash scripts/deploy.sh
+
+# ============================================
+# COMANDOS DE MONITORAMENTO
+# ============================================
+
 # Ver logs da aplicação
 pm2 logs pirata --lines 100
 
@@ -1334,20 +1360,24 @@ sudo tail -50 /var/log/nginx/error.log
 # Verificar .env
 cat .env
 
+# Ver uso de memória/CPU
+pm2 monit
+
+# ============================================
+# COMANDOS DE MANUTENÇÃO
+# ============================================
+
 # Reiniciar aplicação
 pm2 restart pirata
 
 # Reiniciar Nginx
 sudo systemctl reload nginx
 
-# Ver uso de memória/CPU
-pm2 monit
+# Sincronizar banco de dados
+npx prisma db push
 
-# Atualizar código
-git pull origin main
-npm install
-npm run build
-pm2 restart pirata
+# Popular cardápio
+mysql -u pirata -p piratapizzaria < scripts/seed-menu-complete.sql
 ```
 
 ### 10.11 Troubleshooting de Deploy
@@ -1377,43 +1407,58 @@ proxy_pass http://127.0.0.1:3000;
 
 ## 11. Scripts Úteis
 
-### 11.1 Gerar Senha Criptografada
+### 11.1 Deploy Automatizado
+
+```bash
+# Na VPS - executa todo o fluxo de deploy
+cd /var/www/pirata && bash scripts/deploy.sh
+```
+
+### 11.2 Gerar Senha Criptografada
 
 ```bash
 # Terminal
 node -e "require('bcryptjs').hash('nova_senha', 12).then(console.log)"
 ```
 
-### 11.2 Atualizar Senha no Banco
+### 11.3 Atualizar Senha no Banco
 
 ```sql
 -- MySQL
 UPDATE users 
 SET password = '$2b$12$hash_gerado',
-    updated_at = NOW()
+    updatedAt = NOW()
 WHERE email = 'admin@piratapizzaria.com.br';
+
+-- Limpar bloqueio de login (se houver)
+DELETE FROM login_attempts WHERE email = 'admin@piratapizzaria.com.br';
 ```
 
-### 11.3 Exportar Dados
+### 11.4 Popular Cardápio
 
 ```bash
+# Na VPS, dentro do MySQL
+mysql -u pirata -p piratapizzaria < scripts/seed-menu-complete.sql
+```
+
+### 11.5 Exportar/Importar Dados
+
+```bash
+# Exportar
 npx tsx scripts/export-data.ts
-```
 
-### 11.4 Importar Dados
-
-```bash
+# Importar
 npx tsx scripts/import-data.ts
 ```
 
-### 11.5 Limpar Logs Antigos
+### 11.6 Limpar Logs Antigos
 
 ```sql
 -- Limpar logs de auditoria com mais de 90 dias
-DELETE FROM audit_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY);
+DELETE FROM audit_logs WHERE createdAt < DATE_SUB(NOW(), INTERVAL 90 DAY);
 
 -- Limpar tentativas de login antigas
-DELETE FROM login_attempts WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY);
+DELETE FROM login_attempts WHERE createdAt < DATE_SUB(NOW(), INTERVAL 30 DAY);
 ```
 
 ---
@@ -1563,6 +1608,27 @@ tar -czvf backup_pirata_$(date +%Y%m%d).tar.gz public_html/
 | 2024-12 | 1.3.0 | Adicionado fechamento de período |
 | 2025-01 | 1.4.0 | Melhorias de segurança |
 | 2025-12 | 1.5.0 | Deploy em VPS Hostinger com Nginx + PM2 |
+| 2026-01 | 1.6.0 | Script de deploy automatizado (`deploy.sh`) |
+| 2026-01 | 1.6.1 | Cardápio com turnos (almoço/jantar) |
+
+---
+
+## 📁 Estrutura de Arquivos na Raiz
+
+```
+pirata/
+├── prisma/               # Schemas e seeds do banco
+├── public/               # Arquivos estáticos (logo)
+├── scripts/              # Scripts utilitários
+│   ├── deploy.sh         # 🚀 Deploy automatizado
+│   ├── seed-menu-complete.sql  # Seed do cardápio
+│   └── ...
+├── src/                  # Código fonte
+├── server.js             # Servidor customizado (produção)
+├── package.json          # Dependências
+├── DOCS.md               # Esta documentação
+└── README.md             # Instruções básicas
+```
 
 ---
 
